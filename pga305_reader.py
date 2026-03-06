@@ -7,8 +7,7 @@ from typing import Optional, Dict
 
 
 class PGA305Reader:
-    """Class for reading PGA305 sensor data via STM32 I2C bridge"""
-    
+   
     def __init__(self, serial_port: str = None, baud_rate: int = None, timeout_ms: int = None):
         """
         Initialize PGA305 reader
@@ -194,10 +193,8 @@ class PGA305Reader:
         if verbose:
             print(f"\nReading channel {channel}...")
         
-        # Step 1: Reset I2C
         self.reset_i2c()
         
-        # Step 2: Select channel
         self.set_channel(channel)
         
         # Step 3: Enter command mode (CRITICAL!)
@@ -210,8 +207,6 @@ class PGA305Reader:
         if verbose:
             print("✓ Command mode active")
         
-        # Step 4: Read EEPROM from address 0x25
-        # Get register addresses from map or use defaults
         if self.register_map:
             pn_lsb_addr = self.register_map.get('EEPROM_ARRAY PN_LSB', 0x70)
             pn_mid_addr = self.register_map.get('EEPROM_ARRAY PN_MID', 0x71)
@@ -222,6 +217,7 @@ class PGA305Reader:
             prange_lsb_addr = self.register_map.get('EEPROM_ARRAY PRANGE_LSB', 0x76)
             prange_msb_addr = self.register_map.get('EEPROM_ARRAY PRANGE_MSB', 0x77)
         else:
+            print("Unable to read from csv file, using hardcoded values")
             pn_lsb_addr, pn_mid_addr, pn_msb_addr = 0x70, 0x71, 0x72
             sn_lsb_addr, sn_mid_addr, sn_msb_addr = 0x73, 0x74, 0x75
             prange_lsb_addr, prange_msb_addr = 0x76, 0x77

@@ -51,9 +51,11 @@ def enter_command_mode(max_retries=5):
         # Send command - STM32 needs time to do TWO I2C writes (up to 2+ seconds!)
         cmd_bytes = ('cm_20\n').encode('ascii')
         inst.write_raw(cmd_bytes)
-        time.sleep(2.5)  # CRITICAL: Wait for STM32 to complete both I2C writes + 80ms delay
         
-        # Now read response
+        # CRITICAL: Wait for STM32 to complete both I2C writes + 80ms delay
+        # I was having issues with this as tere was not enough timepyt
+        time.sleep(2.5)  
+        
         try:
             if inst.bytes_in_buffer > 0:
                 cm_response = inst.read_bytes(inst.bytes_in_buffer)
@@ -62,7 +64,7 @@ def enter_command_mode(max_retries=5):
         except:
             cm_response = b''
         
-        print(f"  Response: {cm_response.hex() if cm_response else 'no response'}")
+        print(f" Response: {cm_response.hex() if cm_response else 'no response'}")
         
         if len(cm_response) >= 2 and cm_response[0:2] == b'\x06\x0a':
             # Got ACK - verify it actually worked
@@ -82,6 +84,7 @@ def enter_command_mode(max_retries=5):
             time.sleep(1.0)
     
     print(f"\n✗ Command mode FAILED after {max_retries} attempts")
+    
     return False
 
 

@@ -1,10 +1,3 @@
-"""
-PGA305 Reader - Main Menu Application
-======================================
-Interactive menu for reading sensors and running diagnostics
-"""
-
-import os
 import sys
 import config
 from pga305_reader import PGA305Reader
@@ -130,7 +123,7 @@ def main():
         choice = input("\nSelect option (0-2): ").strip()
         
         if choice == '0':
-            print("\nGoodbye!")
+            print("\n Exiting")
             sys.exit(0)
         
         elif choice == '1':
