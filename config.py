@@ -1,15 +1,22 @@
-SERIAL_PORT = "COM5"  # VISA resource name for STM32 board
+SERIAL_PORT = "ASRL5::INSTR"  # VISA resource name for STM32 board
 BAUD_RATE = 115200             # Serial baud rate
 TIMEOUT_MS = 2000              # Communication timeout in milliseconds
-
 
 CHANNEL = 3  # Default multiplexer channel (0-7)
 
 REGISTER_MAP_PATH = "reference/PGA305 Control and Status Registers Map.csv"
 
 # PGA305 I2C Addresses
-# The PGA305 uses different I2C addresses for different memory pages:
 # - 0x20: Runtime data (ADC values, compensated output)
 # - 0x22: Control and Status registers
 # - 0x25: EEPROM registers (Part Number, Serial Number, PRange)
-PGA305_EEPROM_ADDR = 0x25  # DO NOT CHANGE unless you know what you're doing
+PGA305_I2C_ADDR = 0x20  # DO NOT CHANGE unless you know what you're doing
+EEPROM_ADDR = 0x25  
+
+# These delays are critical for reliable operation
+CM_COMMAND_DELAY = 2.5      # Delay after cm_ command (seconds) - STM32 needs 2+ seconds
+I2C_RESET_DELAY = 1.0       # Delay after i2cr command (seconds)
+CHANNEL_SWITCH_DELAY = 0.5  # Delay after changing multiplexer channel (seconds)
+
+# Command mode retry configuration
+CM_MAX_RETRIES = 5          # Maximum attempts to enter command mod
