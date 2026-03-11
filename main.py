@@ -2,7 +2,7 @@ import sys
 import config
 from pga305_reader import PGA305Reader
 from scripts.gpio_diagnostic import run_gpio_diagnostic
-
+from scripts.verify_calibration import run_calibration_verification
 
 def print_header():
     """Print application header"""
@@ -18,19 +18,19 @@ def print_menu():
     print("  1. Read sensor data (Part Number, Serial Number, PRange)")
     print("  2. Scan all channels for programmed sensors")
     print("  3. Run GPIO diagnostic test (check for damaged STM32 pins)")
+    print("  4. Verify PGA305 calibration")
     print("  0. Exit")
     print("-" * 70)
 
 
 def read_single_sensor():
-    """Read Part Number, Serial Number, and PRange from a single sensor"""
+    
     print_header()
     print("READ SENSOR DATA")
     print("="*70)
     
     # Get channel from user
-    channel_input = input(f"\nEnter channel number (0-7) [default: {config.CHANNEL}]: ").strip()
-    channel = int(channel_input) if channel_input else config.CHANNEL
+    channel = config.CHANNEL
     
     if channel < 0 or channel > 7:
         print("ERROR: Channel must be between 0 and 7")
@@ -122,7 +122,7 @@ def main():
         print_header()
         print_menu()
         
-        choice = input("\nSelect option (0-3): ").strip()
+        choice = input("\nSelect option (0-4): ").strip()
         
         if choice == '0':
             print("\nExiting...")
@@ -137,6 +137,9 @@ def main():
         elif choice == '3':
             run_gpio_diagnostic()
         
+        elif choice == '4':
+            run_calibration_verification()
+
         else:
             print("\nInvalid choice. Please select 0-3.")
         
