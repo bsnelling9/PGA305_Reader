@@ -1,6 +1,7 @@
 import sys
 import config
 from pga305_reader import PGA305Reader
+from scripts.gpio_diagnostic import run_gpio_diagnostic
 
 
 def print_header():
@@ -16,6 +17,7 @@ def print_menu():
     print("-" * 70)
     print("  1. Read sensor data (Part Number, Serial Number, PRange)")
     print("  2. Scan all channels for programmed sensors")
+    print("  3. Run GPIO diagnostic test (check for damaged STM32 pins)")
     print("  0. Exit")
     print("-" * 70)
 
@@ -120,10 +122,10 @@ def main():
         print_header()
         print_menu()
         
-        choice = input("\nSelect option (0-2): ").strip()
+        choice = input("\nSelect option (0-3): ").strip()
         
         if choice == '0':
-            print("\n Exiting")
+            print("\nExiting...")
             sys.exit(0)
         
         elif choice == '1':
@@ -132,8 +134,11 @@ def main():
         elif choice == '2':
             scan_all_channels()
         
+        elif choice == '3':
+            run_gpio_diagnostic()
+        
         else:
-            print("\nInvalid choice. Please select 0-2.")
+            print("\nInvalid choice. Please select 0-3.")
         
         input("\nPress Enter to continue...")
 
