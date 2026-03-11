@@ -1,8 +1,8 @@
-SERIAL_PORT = "ASRL4::INSTR"  # VISA resource name for STM32 board
+SERIAL_PORT = "ASRL5::INSTR"  # VISA resource name for STM32 board
 BAUD_RATE = 115200            # Serial baud rate
 TIMEOUT_MS = 2000             # Communication timeout in milliseconds
 
-CHANNEL = 3 
+CHANNEL = 1 
 
 REGISTER_MAP_PATH = "reference/PGA305 Control and Status Registers Map.csv"
 
