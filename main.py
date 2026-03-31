@@ -3,54 +3,51 @@ import config
 from pga305_reader import PGA305Reader
 from scripts.gpio_diagnostic import run_gpio_diagnostic
 from scripts.verify_calibration import run_calibration_verification
+from read_tadc import ReadTADC
+from read_eeprom import ReadEEPROM
+
 
 def print_header():
-    """Print application header"""
     print("\n" + "="*70)
     print(" "*20 + "PGA305 SENSOR READER")
     print("="*70)
 
 
 def print_menu():
-    """Print main menu options"""
     print("\nMAIN MENU:")
     print("-" * 70)
     print("  1. Read sensor data (Part Number, Serial Number, PRange)")
     print("  2. Scan all channels for programmed sensors")
     print("  3. Run GPIO diagnostic test (check for damaged STM32 pins)")
     print("  4. Verify PGA305 calibration")
+    print("  5. Read TADC (channel 1)")
+    print("  6. Read EEPROM configuration (channel 1)")
     print("  0. Exit")
     print("-" * 70)
 
 
 def read_single_sensor():
-    
     print_header()
     print("READ SENSOR DATA")
     print("="*70)
-    
-    # Get channel from user
+
     channel = config.CHANNEL
-    
+
     if channel < 0 or channel > 7:
         print("ERROR: Channel must be between 0 and 7")
         return
-    
-    # Initialize reader
+
     reader = PGA305Reader()
-    
+
     try:
-        # Connect to board
         print(f"\nConnecting to {config.SERIAL_PORT}...")
         reader.connect()
-        
-        # Get board identity
+
         board_id = reader.get_board_identity()
         print(f"Board: {board_id}")
-        
-        # Read sensor data
+
         data = reader.read_sensor_data(channel)
-        
+
         if data:
             print("\n" + "="*70)
             print("RESULT")
@@ -60,55 +57,52 @@ def read_single_sensor():
             if data['prange'] is not None:
                 print(f"PRange:        {data['prange']}")
             print("="*70)
-            
-            # Check if blank
+
             if data['serial_number'] == 0 and data['part_number'] in ['A0', 'S0']:
                 print("\nNote: This sensor appears to be blank/unprogrammed")
         else:
             print("\n✗ ERROR: Failed to read sensor data")
-    
+
     except Exception as e:
         print(f"\n✗ ERROR: {e}")
         import traceback
         traceback.print_exc()
-    
+
     finally:
         reader.disconnect()
 
 
 def scan_all_channels():
-    """Scan all channels for programmed sensors"""
     print_header()
     print("SCANNING ALL CHANNELS")
     print("="*70)
-    
+
     reader = PGA305Reader()
-    
+
     try:
         reader.connect()
-        
+
         for channel in range(8):
             print(f"\n--- Channel {channel} ---")
-            
+
             data = reader.read_sensor_data(channel, verbose=False)
-            
+
             if data:
                 print(f"  Part Number:   {data['part_number']}")
                 print(f"  Serial Number: {data['serial_number']}")
                 if data['prange'] is not None:
                     print(f"  PRange:        {data['prange']}")
-                
-                # Check if programmed
+
                 if data['serial_number'] != 0 or data['part_number'] not in ['A0', 'S0']:
                     print(f"  ✓ PROGRAMMED SENSOR")
                 else:
                     print(f"  (blank/unprogrammed)")
             else:
                 print("  ✗ No response")
-    
+
     except Exception as e:
         print(f"\n✗ ERROR: {e}")
-    
+
     finally:
         reader.disconnect()
         print("\n" + "="*70)
@@ -117,32 +111,37 @@ def scan_all_channels():
 
 
 def main():
-    """Main program loop"""
     while True:
         print_header()
         print_menu()
-        
-        choice = input("\nSelect option (0-4): ").strip()
-        
+
+        choice = input("\nSelect option (0-6): ").strip()
+
         if choice == '0':
             print("\nExiting...")
             sys.exit(0)
-        
+
         elif choice == '1':
             read_single_sensor()
-        
+
         elif choice == '2':
             scan_all_channels()
-        
+
         elif choice == '3':
             run_gpio_diagnostic()
-        
+
         elif choice == '4':
             run_calibration_verification()
 
+        elif choice == '5':
+            ReadTADC(channel=1).run()
+
+        elif choice == '6':
+            ReadEEPROM(channel=1).run()
+
         else:
-            print("\nInvalid choice. Please select 0-3.")
-        
+            print("\nInvalid choice. Please select 0-6.")
+
         input("\nPress Enter to continue...")
 
 

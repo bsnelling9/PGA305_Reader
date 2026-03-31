@@ -1,0 +1,200 @@
+# eeprom_addresses.py
+# PGA305 register addresses sourced directly from:
+# PGA305 Control and Status Registers Map.csv
+#
+# Two address spaces:
+#   EEPROM_REGISTERS  — EEPROM array at I2C address 0x25
+#   CONFIG_REGISTERS  — Control and Status registers at I2C address 0x22
+
+# ---------------------------------------------------------------------------
+# EEPROM array registers — read/write via I2C address 0x25
+# ---------------------------------------------------------------------------
+EEPROM_REGISTERS = {
+    # PAGE 0-5 — Compensation coefficients
+    0x00: "H0_LSB",
+    0x01: "H0_MID",
+    0x02: "H0_MSB",
+    0x03: "H1_LSB",
+    0x04: "H1_MID",
+    0x05: "H1_MSB",
+    0x06: "H2_LSB",
+    0x07: "H2_MID",
+    0x08: "H2_MSB",
+    0x09: "H3_LSB",
+    0x0A: "H3_MID",
+    0x0B: "H3_MSB",
+    0x0C: "G0_LSB",
+    0x0D: "G0_MID",
+    0x0E: "G0_MSB",
+    0x0F: "G1_LSB",
+    0x10: "G1_MID",
+    0x11: "G1_MSB",
+    0x12: "G2_LSB",
+    0x13: "G2_MID",
+    0x14: "G2_MSB",
+    0x15: "G3_LSB",
+    0x16: "G3_MID",
+    0x17: "G3_MSB",
+    0x18: "N0_LSB",
+    0x19: "N0_MID",
+    0x1A: "N0_MSB",
+    0x1B: "N1_LSB",
+    0x1C: "N1_MID",
+    0x1D: "N1_MSB",
+    0x1E: "N2_LSB",
+    0x1F: "N2_MID",
+    0x20: "N2_MSB",
+    0x21: "N3_LSB",
+    0x22: "N3_MID",
+    0x23: "N3_MSB",
+    0x24: "M0_LSB",
+    0x25: "M0_MID",
+    0x26: "M0_MSB",
+    0x27: "M1_LSB",
+    0x28: "M1_MID",
+    0x29: "M1_MSB",
+    0x2A: "M2_LSB",
+    0x2B: "M2_MID",
+    0x2C: "M2_MSB",
+    0x2D: "M3_LSB",
+    0x2E: "M3_MID",
+    0x2F: "M3_MSB",
+    # PAGE 6 — Analog config (mirrored in EEPROM)
+    0x30: "DIG_IF_CTRL",
+    0x31: "DAC_CTRL_STATUS",
+    0x32: "DAC_CONFIG",
+    0x33: "OP_STAGE_CTRL",
+    0x34: "BRDG_CTRL",
+    0x35: "P_GAIN_SELECT",
+    0x36: "T_GAIN_SELECT",
+    0x37: "TEMP_CTRL",
+    # PAGE 7 — Temperature / normal range
+    0x38: "ADD_0x38",
+    0x39: "ADD_0x39",
+    0x3A: "TEMP_SE",
+    0x3B: "ADD_0x3B",
+    0x3C: "NORMAL_LOW_LSB",
+    0x3D: "NORMAL_LOW_MSB",
+    0x3E: "NORMAL_HIGH_LSB",
+    0x3F: "NORMAL_HIGH_MSB",
+    # PAGE 8 — Clamp / PADC gain
+    0x40: "LOW_CLAMP_LSB",
+    0x41: "LOW_CLAMP_MSB",
+    0x42: "HIGH_CLAMP_LSB",
+    0x43: "HIGH_CLAMP_MSB",
+    0x44: "PADC_GAIN_LSB",
+    0x45: "PADC_GAIN_MID",
+    0x46: "PADC_GAIN_MSB",
+    0x47: "PADC_OFFSET_LSB",
+    # PAGE 9 — PADC offset / A coefficients
+    0x48: "PADC_OFFSET_MID",
+    0x49: "PADC_OFFSET_MSB",
+    0x4A: "A0_LSB",
+    0x4B: "A0_MSB",
+    0x4C: "A1_LSB",
+    0x4D: "A1_MSB",
+    0x4E: "A2_LSB",
+    0x4F: "A2_MSB",
+    # PAGE A — B coefficients / diagnostics
+    0x50: "B0_LSB",
+    0x51: "B0_MSB",
+    0x52: "B1_LSB",
+    0x53: "B1_MSB",
+    0x54: "B2_LSB",
+    0x55: "B2_MSB",
+    0x56: "DIAG_ENABLE",
+    0x57: "EEPROM_LOCK",
+    # PAGE B — AFE diagnostics / TADC gain
+    0x58: "AFEDIAG_CFG",
+    0x59: "AFEDIAG_MASK",
+    0x5A: "ADD_0x5A",
+    0x5B: "ADD_0x5B",
+    0x5C: "FAULT_LSB",
+    0x5D: "FAULT_MSB",
+    0x5E: "TADC_GAIN_LSB",
+    0x5F: "TADC_GAIN_MID",
+    # PAGE C — TADC offset / serial number
+    0x60: "TADC_GAIN_MSB",
+    0x61: "TADC_OFFSET_LSB",
+    0x62: "TADC_OFFSET_MID",
+    0x63: "TADC_OFFSET_MSB",
+    0x64: "SERIAL_NUMBER_BYTE0",
+    0x65: "SERIAL_NUMBER_BYTE1",
+    0x66: "SERIAL_NUMBER_BYTE2",
+    0x67: "SERIAL_NUMBER_BYTE3",
+    # PAGE D — ADC config
+    0x68: "ADC_24BIT_ENABLE",
+    0x69: "OFFSET_ENABLE",
+    0x6A: "ADD_0x6A",
+    0x6B: "ADD_0x6B",
+    0x6C: "ADD_0x6C",
+    0x6D: "ADD_0x6D",
+    0x6E: "ADD_0x6E",
+    0x6F: "ADD_0x6F",
+    # PAGE E — Part number / serial / pressure range
+    0x70: "PN_LSB",
+    0x71: "PN_MID",
+    0x72: "PN_MSB",
+    0x73: "SN_LSB",
+    0x74: "SN_MID",
+    0x75: "SN_MSB",
+    0x76: "PRANGE_LSB",
+    0x77: "PRANGE_MSB",
+    # PAGE F — Reserved / CRC
+    0x78: "ADD_0x78",
+    0x79: "ADD_0x79",
+    0x7A: "ADD_0x7A",
+    0x7B: "ADD_0x7B",
+    0x7C: "ADD_0x7C",
+    0x7D: "ADD_0x7D",
+    0x7E: "ADD_0x7E",
+    0x7F: "EEPROM_CRC_VALUE",
+}
+
+# Page boundary labels for display grouping
+EEPROM_PAGES = {
+    0x00: "PAGE 0-1  — H Coefficients",
+    0x0C: "PAGE 1-2  — G Coefficients",
+    0x18: "PAGE 3    — N Coefficients",
+    0x24: "PAGE 4-5  — M Coefficients",
+    0x30: "PAGE 6    — Analog Config",
+    0x38: "PAGE 7    — Temperature / Normal Range",
+    0x40: "PAGE 8    — Clamp / PADC Gain",
+    0x48: "PAGE 9    — PADC Offset / A Coefficients",
+    0x50: "PAGE A    — B Coefficients / Diagnostics",
+    0x58: "PAGE B    — AFE Diagnostics / TADC Gain",
+    0x60: "PAGE C    — TADC Offset / Serial Number",
+    0x68: "PAGE D    — ADC Config",
+    0x70: "PAGE E    — Part Number / Serial / PRange",
+    0x78: "PAGE F    — Reserved / CRC",
+}
+
+# ---------------------------------------------------------------------------
+# Control and Status registers — read/write via I2C address 0x22
+# ---------------------------------------------------------------------------
+CONFIG_REGISTERS = {
+    # ADC data registers
+    0x20: "PADC_DATA1 (LSB)",
+    0x21: "PADC_DATA2 (MID)",
+    0x22: "PADC_DATA3 (MSB)",
+    0x24: "TADC_DATA1 (LSB)",
+    0x25: "TADC_DATA2 (MID)",
+    0x26: "TADC_DATA3 (MSB)",
+    # DAC registers
+    0x38: "DAC_CTRL_STATUS",
+    0x39: "DAC_CONFIG",
+    0x3B: "OP_STAGE_CTRL",
+    # Analog config
+    0x45: "AFEDIAG_CFG",
+    0x46: "BRDG_CTRL",
+    0x47: "P_GAIN_SELECT",
+    0x48: "T_GAIN_SELECT",
+    0x4C: "TEMP_CTRL",
+    # AMUX
+    0x67: "AMUX_CTRL (TSEM_N)",
+}
+
+# I2C addresses
+I2C_RUNTIME   = 0x20  # Runtime data and compensation control
+I2C_CONTROL   = 0x22  # Control and Status registers
+I2C_EEPROM    = 0x25  # EEPROM array

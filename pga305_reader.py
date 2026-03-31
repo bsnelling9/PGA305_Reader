@@ -86,10 +86,11 @@ class PGA305Reader:
         return None
 
     def get_board_identity(self) -> str:
+        
         response = self.send_command("IDN")
+        
         return response.decode('ascii', errors='ignore').strip()
 
-    # --- PGA305 command mode ---
 
     def enter_command_mode(self, max_retries=None) -> bool:
         """
@@ -122,7 +123,6 @@ class PGA305Reader:
 
         return False
 
-    # --- Sensor data ---
 
     def read_sensor_data(self, channel: int, verbose=True) -> Optional[Dict]:
         """Read Part Number, Serial Number, and PRange from a PGA305 sensor."""
@@ -140,7 +140,6 @@ class PGA305Reader:
         if verbose:
             print("Command mode active")
 
-        # Register addresses (from CSV or hardcoded fallback)
         if self.register_map:
             pn_addrs = [self.register_map.get(f'EEPROM_ARRAY PN_{s}', d)
                         for s, d in [('LSB', 0x70), ('MID', 0x71), ('MSB', 0x72)]]
@@ -153,7 +152,6 @@ class PGA305Reader:
             sn_addrs = [0x73, 0x74, 0x75]
             pr_addrs = [0x76, 0x77]
 
-        # Read Part Number
         pn_bytes = [self.read_register(a, config.EEPROM_ADDR) for a in pn_addrs]
         if None in pn_bytes:
             if verbose:
