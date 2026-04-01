@@ -10,7 +10,8 @@ REGISTER_MAP_PATH = "reference/PGA305 Control and Status Registers Map.csv"
 # - 0x20: Runtime data (ADC values, compensated output)
 # - 0x22: Control and Status registers
 # - 0x25: EEPROM registers (Part Number, Serial Number, PRange)
-PGA305_I2C_ADDR = 0x20 
+PGA305_I2C_ADDR = 0x20
+I2C_CONTROL   = 0x22 
 EEPROM_ADDR = 0x25  
 
 
@@ -20,3 +21,7 @@ CHANNEL_SWITCH_DELAY = 0.5  # Delay after changing multiplexer channel (seconds)
 
 # Command mode retry configuration
 CM_MAX_RETRIES = 5 
+
+# Scan channels configuration
+SCAN_NUM_CHANNELS  = 2   # Number of channels to scan (0 to N-1)
+SCAN_ITERATIONS    = 5  # Number of times to repeat the full scan

@@ -6,6 +6,7 @@ from scripts.verify_calibration import run_calibration_verification
 from read_tadc import ReadTADC
 from read_eeprom import ReadEEPROM
 from verify_coefficients import VerifyCoefficients
+from scan_mux_channels import ScanMuxChannels
 
 def print_header():
     print("\n" + "="*70)
@@ -23,6 +24,7 @@ def print_menu():
     print("  5. Read TADC (channel 1)")
     print("  6. Read EEPROM configuration (channel 1)")
     print("  7. Verify coefficients against DUT file (channel 1)")
+    print("  8. Timing diagnostic scan (all channels, multiple iterations)")
     print("  0. Exit")
     print("-" * 70)
 
@@ -116,7 +118,7 @@ def main():
         print_header()
         print_menu()
 
-        choice = input("\nSelect option (0-7): ").strip()
+        choice = input("\nSelect option (0-8): ").strip()
 
         if choice == '0':
             print("\nExiting...")
@@ -142,6 +144,9 @@ def main():
 
         elif choice == '7':
             VerifyCoefficients(channel=1).run()
+        
+        elif choice == '8':
+            ScanMuxChannels(iterations=config.SCAN_ITERATIONS).run()
 
         else:
             print("\nInvalid choice. Please select 0-7.")
