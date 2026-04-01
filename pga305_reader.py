@@ -41,7 +41,6 @@ class PGA305Reader:
             self.inst.close()
             self.inst = None
 
-    # --- Low-level commands ---
 
     def send_command(self, cmd: str) -> bytes:
         """Send command to STM32 and return raw response."""
@@ -86,10 +85,11 @@ class PGA305Reader:
         return None
 
     def get_board_identity(self) -> str:
+        
         response = self.send_command("IDN")
+        
         return response.decode('ascii', errors='ignore').strip()
 
-    # --- PGA305 command mode ---
 
     def enter_command_mode(self, max_retries=None) -> bool:
         """
@@ -122,7 +122,6 @@ class PGA305Reader:
 
         return False
 
-    # --- Sensor data ---
 
     def read_sensor_data(self, channel: int, verbose=True) -> Optional[Dict]:
         """Read Part Number, Serial Number, and PRange from a PGA305 sensor."""
@@ -140,7 +139,6 @@ class PGA305Reader:
         if verbose:
             print("Command mode active")
 
-        # Register addresses (from CSV or hardcoded fallback)
         if self.register_map:
             pn_addrs = [self.register_map.get(f'EEPROM_ARRAY PN_{s}', d)
                         for s, d in [('LSB', 0x70), ('MID', 0x71), ('MSB', 0x72)]]
@@ -153,7 +151,6 @@ class PGA305Reader:
             sn_addrs = [0x73, 0x74, 0x75]
             pr_addrs = [0x76, 0x77]
 
-        # Read Part Number
         pn_bytes = [self.read_register(a, config.EEPROM_ADDR) for a in pn_addrs]
         if None in pn_bytes:
             if verbose:
@@ -166,7 +163,6 @@ class PGA305Reader:
         pn_numeric = pn_lsb + (pn_mid << 8) + ((pn_msb // 128) << 16)
         part_number = prefix + str(pn_numeric)
 
-        # Read Serial Number
         sn_bytes = [self.read_register(a, config.EEPROM_ADDR) for a in sn_addrs]
         if None in sn_bytes:
             if verbose:
@@ -176,7 +172,6 @@ class PGA305Reader:
 
         serial_number = sn_bytes[0] + (sn_bytes[1] << 8) + (sn_bytes[2] << 16)
 
-        # Read PRange
         pr_bytes = [self.read_register(a, config.EEPROM_ADDR) for a in pr_addrs]
         if None in pr_bytes:
             prange = None
@@ -191,7 +186,6 @@ class PGA305Reader:
             'prange': prange
         }
 
-    # --- Register map loader ---
 
     def _load_register_map(self, csv_path: str) -> bool:
         if not os.path.exists(csv_path):

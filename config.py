@@ -1,6 +1,6 @@
-SERIAL_PORT = "ASRL5::INSTR"  # VISA resource name for STM32 board
-BAUD_RATE = 115200            # Serial baud rate
-TIMEOUT_MS = 2000             # Communication timeout in milliseconds
+SERIAL_PORT = "ASRL5::INSTR"  
+BAUD_RATE = 115200            
+TIMEOUT_MS = 2000             
 
 CHANNEL = 1 
 
@@ -12,6 +12,7 @@ REGISTER_MAP_PATH = "reference/PGA305 Control and Status Registers Map.csv"
 # - 0x25: EEPROM registers (Part Number, Serial Number, PRange)
 PGA305_I2C_ADDR = 0x20 
 EEPROM_ADDR = 0x25  
+
 
 CM_COMMAND_DELAY = 2.5      # Delay after cm_ command (seconds) - STM32 needs 2+ seconds
 I2C_RESET_DELAY = 1.0       # Delay after i2cr command (seconds)
