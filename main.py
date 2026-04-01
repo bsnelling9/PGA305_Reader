@@ -5,7 +5,7 @@ from scripts.gpio_diagnostic import run_gpio_diagnostic
 from scripts.verify_calibration import run_calibration_verification
 from read_tadc import ReadTADC
 from read_eeprom import ReadEEPROM
-
+from verify_coefficients import VerifyCoefficients
 
 def print_header():
     print("\n" + "="*70)
@@ -22,6 +22,7 @@ def print_menu():
     print("  4. Verify PGA305 calibration")
     print("  5. Read TADC (channel 1)")
     print("  6. Read EEPROM configuration (channel 1)")
+    print("  7. Verify coefficients against DUT file (channel 1)")
     print("  0. Exit")
     print("-" * 70)
 
@@ -61,7 +62,7 @@ def read_single_sensor():
             if data['serial_number'] == 0 and data['part_number'] in ['A0', 'S0']:
                 print("\nNote: This sensor appears to be blank/unprogrammed")
         else:
-            print("\n✗ ERROR: Failed to read sensor data")
+            print("\n ERROR: Failed to read sensor data")
 
     except Exception as e:
         print(f"\n✗ ERROR: {e}")
@@ -94,11 +95,11 @@ def scan_all_channels():
                     print(f"  PRange:        {data['prange']}")
 
                 if data['serial_number'] != 0 or data['part_number'] not in ['A0', 'S0']:
-                    print(f"  ✓ PROGRAMMED SENSOR")
+                    print(f"  PROGRAMMED SENSOR")
                 else:
                     print(f"  (blank/unprogrammed)")
             else:
-                print("  ✗ No response")
+                print(" No response")
 
     except Exception as e:
         print(f"\n✗ ERROR: {e}")
@@ -115,7 +116,7 @@ def main():
         print_header()
         print_menu()
 
-        choice = input("\nSelect option (0-6): ").strip()
+        choice = input("\nSelect option (0-7): ").strip()
 
         if choice == '0':
             print("\nExiting...")
@@ -139,8 +140,11 @@ def main():
         elif choice == '6':
             ReadEEPROM(channel=1).run()
 
+        elif choice == '7':
+            VerifyCoefficients(channel=1).run()
+
         else:
-            print("\nInvalid choice. Please select 0-6.")
+            print("\nInvalid choice. Please select 0-7.")
 
         input("\nPress Enter to continue...")
 

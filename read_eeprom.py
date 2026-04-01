@@ -1,7 +1,6 @@
 import config
 from pga305_reader import PGA305Reader
-from eeprom_addresses import EEPROM_REGISTERS, EEPROM_PAGES, I2C_EEPROM
-
+from eeprom_addresses import EEPROM_REGISTERS, EEPROM_PAGES
 
 class ReadEEPROM:
     """
@@ -35,7 +34,6 @@ class ReadEEPROM:
                         name = row.get('REGISTER NAME', '').strip()
                         offset_str = row.get('DI Offset Address', '').strip()
 
-                        # Only load EEPROM array entries (DI Page 0x5)
                         if name.startswith('EEPROM_ARRAY') and offset_str:
                             try:
                                 label = name.replace('EEPROM_ARRAY ', '').strip()
@@ -46,12 +44,14 @@ class ReadEEPROM:
 
                 if registers:
                     print(f"  [Register map loaded from CSV: {len(registers)} entries]")
+                    
                     return dict(sorted(registers.items()))
 
             except Exception as e:
                 print(f"  [CSV load failed: {e} — using fallback addresses]")
 
         print("  [Using eeprom_addresses.py]")
+        
         return EEPROM_REGISTERS
 
     def run(self):
@@ -68,10 +68,10 @@ class ReadEEPROM:
 
             print("Entering command mode...")
             if not self.reader.enter_command_mode():
-                print("✗ ERROR: Could not enter command mode")
+                print(" ERROR: Could not enter command mode")
                 return
 
-            print("Command mode active ✓")
+            print("Command mode active ")
             print("\nReading EEPROM registers...\n")
 
             self._print_registers()
@@ -81,16 +81,14 @@ class ReadEEPROM:
             print("="*70)
 
         except Exception as e:
-            print(f"\n✗ ERROR: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"\n ERROR: {e}")
 
         finally:
             self.reader.disconnect_channel()
             self.reader.disconnect()
 
     def _print_registers(self):
-        """Read and print all EEPROM registers grouped by page."""
+
         current_page_start = None
 
         for addr, label in self.registers.items():
@@ -104,16 +102,20 @@ class ReadEEPROM:
                 print("-" * 70)
                 current_page_start = page_start
 
-            value = self.reader.read_register(addr, I2C_EEPROM)
+            value = self.reader.read_register(addr, config.EEPROM_ADDR)
 
             if value is None:
-                print(f"  0x{addr:02X}  {label:<30} ✗ READ FAILED")
+                print(f"  0x{addr:02X}  {label:<30}  READ FAILED")
             else:
                 print(f"  0x{addr:02X}  {label:<30} 0x{value:02X}  ({value:3d})")
 
+
     def _get_page_start(self, addr: int) -> int:
-        """Return the page boundary address for a given register address."""
+        
         for page_start in sorted(EEPROM_PAGES.keys(), reverse=True):
+        
             if addr >= page_start:
+        
                 return page_start
+        
         return 0x00

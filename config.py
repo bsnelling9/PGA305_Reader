@@ -1,6 +1,6 @@
-SERIAL_PORT = "ASRL5::INSTR"  # VISA resource name for STM32 board
-BAUD_RATE = 115200            # Serial baud rate
-TIMEOUT_MS = 2000             # Communication timeout in milliseconds
+SERIAL_PORT = "ASRL5::INSTR"  
+BAUD_RATE = 115200            
+TIMEOUT_MS = 2000             
 
 CHANNEL = 1 
 

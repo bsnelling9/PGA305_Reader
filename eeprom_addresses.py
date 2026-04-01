@@ -1,14 +1,3 @@
-# eeprom_addresses.py
-# PGA305 register addresses sourced directly from:
-# PGA305 Control and Status Registers Map.csv
-#
-# Two address spaces:
-#   EEPROM_REGISTERS  — EEPROM array at I2C address 0x25
-#   CONFIG_REGISTERS  — Control and Status registers at I2C address 0x22
-
-# ---------------------------------------------------------------------------
-# EEPROM array registers — read/write via I2C address 0x25
-# ---------------------------------------------------------------------------
 EEPROM_REGISTERS = {
     # PAGE 0-5 — Compensation coefficients
     0x00: "H0_LSB",
@@ -197,4 +186,3 @@ CONFIG_REGISTERS = {
 # I2C addresses
 I2C_RUNTIME   = 0x20  # Runtime data and compensation control
 I2C_CONTROL   = 0x22  # Control and Status registers
-I2C_EEPROM    = 0x25  # EEPROM array

@@ -41,7 +41,6 @@ class PGA305Reader:
             self.inst.close()
             self.inst = None
 
-    # --- Low-level commands ---
 
     def send_command(self, cmd: str) -> bytes:
         """Send command to STM32 and return raw response."""
@@ -164,7 +163,6 @@ class PGA305Reader:
         pn_numeric = pn_lsb + (pn_mid << 8) + ((pn_msb // 128) << 16)
         part_number = prefix + str(pn_numeric)
 
-        # Read Serial Number
         sn_bytes = [self.read_register(a, config.EEPROM_ADDR) for a in sn_addrs]
         if None in sn_bytes:
             if verbose:
@@ -174,7 +172,6 @@ class PGA305Reader:
 
         serial_number = sn_bytes[0] + (sn_bytes[1] << 8) + (sn_bytes[2] << 16)
 
-        # Read PRange
         pr_bytes = [self.read_register(a, config.EEPROM_ADDR) for a in pr_addrs]
         if None in pr_bytes:
             prange = None
@@ -189,7 +186,6 @@ class PGA305Reader:
             'prange': prange
         }
 
-    # --- Register map loader ---
 
     def _load_register_map(self, csv_path: str) -> bool:
         if not os.path.exists(csv_path):
