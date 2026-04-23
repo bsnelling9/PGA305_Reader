@@ -90,6 +90,22 @@ class PGA305Reader:
         
         return response.decode('ascii', errors='ignore').strip()
 
+    def read_dig_if_ctrl(self) -> Optional[int]:
+        """Read DIG_IF_CTRL register (page 0x2, offset 0x06) to check OWI enable status."""
+        # I2C address for page 0x2 = 0x40 + 0x02 = 0x42
+        value = self.read_register(0x06, config.I2C_CONTROL)
+        if value is not None:
+            print(f"DIG_IF_CTRL (0x22/0x06) = 0x{value:02X} ({value:08b})")
+            print(f"  OWI_XCVR_EN (bit 3): {(value >> 3) & 1}")
+            print(f"  OWI_EN      (bit 2): {(value >> 2) & 1}")
+            print(f"  I2C_EN      (bit 1): {(value >> 1) & 1}")
+            print(f"  SPI_EN      (bit 0): {value & 1}")
+        return value
+
+    def write_register(self, reg_addr: int, value: int, i2c_addr: int) -> bool:
+        """Write a single 8-bit register to the PGA305."""
+        response = self.send_command(f"imw{i2c_addr:02X}{reg_addr:02X}{value:02X}")
+        return len(response) > 0 and response[0] == 6
 
     def enter_command_mode(self, max_retries=None) -> bool:
         """
@@ -139,6 +155,12 @@ class PGA305Reader:
         if verbose:
             print("Command mode active")
 
+        dig_if = self.read_register(0x06, config.I2C_CONTROL)
+        if dig_if is not None and not (dig_if >> 3) & 1:
+            self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)    
+
+        self.read_dig_if_ctrl()
+
         if self.register_map:
             pn_addrs = [self.register_map.get(f'EEPROM_ARRAY PN_{s}', d)
                         for s, d in [('LSB', 0x70), ('MID', 0x71), ('MSB', 0x72)]]
@@ -159,6 +181,9 @@ class PGA305Reader:
             return None
 
         pn_lsb, pn_mid, pn_msb = pn_bytes
+
+        print(f"DEBUG [Ch {channel}]: pn_lsb={hex(pn_lsb)}, pn_mid={hex(pn_mid)}, pn_msb={hex(pn_msb)}")
+
         prefix = "A" if (pn_msb % 128) == 0 else "S"
         pn_numeric = pn_lsb + (pn_mid << 8) + ((pn_msb // 128) << 16)
         part_number = prefix + str(pn_numeric)

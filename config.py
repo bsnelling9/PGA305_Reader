@@ -23,5 +23,5 @@ CHANNEL_SWITCH_DELAY = 0.5  # Delay after changing multiplexer channel (seconds)
 CM_MAX_RETRIES = 5 
 
 # Scan channels configuration
-SCAN_NUM_CHANNELS  = 2   # Number of channels to scan (0 to N-1)
-SCAN_ITERATIONS    = 5  # Number of times to repeat the full scan
+SCAN_NUM_CHANNELS  = 1   # Number of channels to scan (0 to N-1)
+SCAN_ITERATIONS    = 2  # Number of times to repeat the full scan

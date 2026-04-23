@@ -6,20 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pga305_reader import PGA305Reader
 import config
 
-
-# =============================================================================
-# PGA305 EEPROM Register Map (from PGA305 Control and Status Registers Map.csv)
-# All accessed via I2C address 0x25 (EEPROM_ADDR)
-#
-# Calibration Coefficients (Pages 0-5):
-#   H0-H3: Offset coefficients (24-bit, 3 bytes each)
-#   G0-G3: Gain coefficients (24-bit, 3 bytes each)
-#   N0-N3: Nonlinearity coefficients (24-bit, 3 bytes each)
-#   M0-M3: Temperature coefficients (24-bit, 3 bytes each)
-#
-# The PGA305 uses a 3rd-order polynomial with up to 16 coefficients
-# for temperature and nonlinearity compensation.
-# =============================================================================
+"""This code will need to be reomved as it has been replaced with other functions"""
 
 NORM_FACTOR_24BIT = 2**22  # 4,194,304 - normalization for 24-bit ADC
 NORM_FACTOR_16BIT = 2**14  # 16,384 - normalization for 16-bit ADC

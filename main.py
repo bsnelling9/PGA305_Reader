@@ -7,6 +7,8 @@ from read_tadc import ReadTADC
 from read_eeprom import ReadEEPROM
 from verify_coefficients import VerifyCoefficients
 from scan_mux_channels import ScanMuxChannels
+from enable_owi import EnableOWI
+from handle_uart import HandleUART
 
 def print_header():
     print("\n" + "="*70)
@@ -21,10 +23,12 @@ def print_menu():
     print("  2. Scan all channels for programmed sensors")
     print("  3. Run GPIO diagnostic test (check for damaged STM32 pins)")
     print("  4. Verify PGA305 calibration")
-    print("  5. Read TADC (channel 1)")
-    print("  6. Read EEPROM configuration (channel 1)")
-    print("  7. Verify coefficients against DUT file (channel 1)")
+    print("  5. Read TADC")
+    print("  6. Read EEPROM configuration")
+    print("  7. Verify coefficients against DUT file")
     print("  8. Timing diagnostic scan (all channels, multiple iterations)")
+    print("  9. Enable OWI on channel 1")
+    print("  10. Handle UART")
     print("  0. Exit")
     print("-" * 70)
 
@@ -148,6 +152,12 @@ def main():
         elif choice == '8':
             ScanMuxChannels(iterations=config.SCAN_ITERATIONS).run()
 
+        elif choice == '9':
+            EnableOWI(channel=config.CHANNEL).run()
+
+        elif choice == '10':
+            HandleUART(channel=config.CHANNEL).run()
+        
         else:
             print("\nInvalid choice. Please select 0-7.")
 
