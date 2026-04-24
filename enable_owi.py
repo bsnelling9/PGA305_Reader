@@ -27,19 +27,24 @@ class EnableOWI:
                 return False
 
             print("Command mode active")
-            # Check what EEPROM actually has after power cycle
+
             eeprom_val = self.reader.read_register(0x30, config.EEPROM_ADDR)
             print(f"DIG_IF_CTRL EEPROM (0x25/0x30): 0x{eeprom_val:02X}")
 
-            # Step 1: Write volatile DIG_IF_CTRL and DLPWR
+            # Step 1: Read current volatile values
             current_dig = self.reader.read_register(0x06, config.I2C_CONTROL)
+            current_owi_int = self.reader.read_register(0x0B, config.I2C_CONTROL)
             current_dlpwr = self.reader.read_register(0x54, config.I2C_CONTROL)
-            print(f"\nDIG_IF_CTRL volatile (0x22/0x06): 0x{current_dig:02X}")
-            print(f"DLPWR       volatile (0x22/0x54): 0x{current_dlpwr:02X}")
+
+            print(f"\nDIG_IF_CTRL        volatile (0x22/0x06): 0x{current_dig:02X}")
+            print(f"OWI_INTERRUPT_EN   volatile (0x22/0x0B): 0x{current_owi_int:02X}")
+            print(f"DLPWR              volatile (0x22/0x54): 0x{current_dlpwr:02X}")
 
             new_dig = current_dig | 0x0C
+            new_owi_int = current_owi_int | 0x01
             new_dlpwr = current_dlpwr | 0x01
 
+            # Step 2: Write volatile DIG_IF_CTRL
             print(f"\nStep 1: Writing 0x{new_dig:02X} to DIG_IF_CTRL volatile (0x22/0x06)...")
             if not self.reader.write_register(0x06, new_dig, config.I2C_CONTROL):
                 print("ERROR: DIG_IF_CTRL volatile write failed")
@@ -51,7 +56,20 @@ class EnableOWI:
                 return False
             print("DIG_IF_CTRL volatile write verified ✓")
 
-            print(f"\nStep 2: Writing 0x{new_dlpwr:02X} to DLPWR volatile (0x22/0x54)...")
+            # Step 3: Write volatile OWI_INTERRUPT_EN
+            print(f"\nStep 2: Writing 0x{new_owi_int:02X} to OWI_INTERRUPT_EN volatile (0x22/0x0B)...")
+            if not self.reader.write_register(0x0B, new_owi_int, config.I2C_CONTROL):
+                print("ERROR: OWI_INTERRUPT_EN volatile write failed")
+                return False
+            readback_owi_int = self.reader.read_register(0x0B, config.I2C_CONTROL)
+            print(f"OWI_INTERRUPT_EN readback: 0x{readback_owi_int:02X}")
+            if readback_owi_int != new_owi_int:
+                print("ERROR: OWI_INTERRUPT_EN volatile write did not stick")
+                return False
+            print("OWI_INTERRUPT_EN volatile write verified ✓")
+
+            # Step 4: Write volatile DLPWR
+            print(f"\nStep 3: Writing 0x{new_dlpwr:02X} to DLPWR volatile (0x22/0x54)...")
             if not self.reader.write_register(0x54, new_dlpwr, config.I2C_CONTROL):
                 print("ERROR: DLPWR volatile write failed")
                 return False
@@ -62,8 +80,8 @@ class EnableOWI:
                 return False
             print("DLPWR volatile write verified ✓")
 
-            # Step 3: Read current 8-byte page containing DIG_IF_CTRL (page 6, addresses 0x30-0x37)
-            print("\nStep 3: Reading current EEPROM page 6 (0x30-0x37)...")
+            # Step 5: Read current EEPROM page 6 (0x30-0x37)
+            print("\nStep 4: Reading current EEPROM page 6 (0x30-0x37)...")
             page = []
             for addr in range(0x30, 0x38):
                 val = self.reader.read_register(addr, config.EEPROM_ADDR)
@@ -73,20 +91,20 @@ class EnableOWI:
                 page.append(val)
                 print(f"  0x{addr:02X} = 0x{val:02X}")
 
-            # Step 4: Modify DIG_IF_CTRL byte (offset 0 in page)
+            # Step 6: Modify DIG_IF_CTRL byte only
             page[0] = new_dig
-            print(f"\nStep 4: Modified page[0] (DIG_IF_CTRL) to 0x{new_dig:02X}")
+            print(f"\nStep 5: Modified page[0] (DIG_IF_CTRL) to 0x{new_dig:02X}")
             print(f"  Page to write: {[f'0x{b:02X}' for b in page]}")
 
-            # Step 5: Set EEPROM page address (upper 4 bits of 0x30 = 0x06)
-            print("\nStep 5: Setting EEPROM page address (0x88 = 0x06)...")
+            # Step 7: Set EEPROM page address
+            print("\nStep 6: Setting EEPROM page address (0x88 = 0x06)...")
             if not self.reader.write_register(0x88, 0x06, config.EEPROM_ADDR):
                 print("ERROR: EEPROM page address write failed")
                 return False
             print("EEPROM page address set ✓")
 
-            # Step 6: Write 8 bytes to EEPROM cache (0x80-0x87)
-            print("\nStep 6: Writing 8 bytes to EEPROM cache...")
+            # Step 8: Write 8 bytes to EEPROM cache
+            print("\nStep 7: Writing 8 bytes to EEPROM cache...")
             cache_addrs = [0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87]
             for i, addr in enumerate(cache_addrs):
                 if not self.reader.write_register(addr, page[i], config.EEPROM_ADDR):
@@ -94,15 +112,15 @@ class EnableOWI:
                     return False
                 print(f"  Cache[{i}] (0x{addr:02X}) = 0x{page[i]:02X} ✓")
 
-            # Step 7: Trigger ERASE_AND_PROGRAM
-            print("\nStep 7: Triggering ERASE_AND_PROGRAM (0x89 = 0x04)...")
+            # Step 9: Trigger ERASE_AND_PROGRAM
+            print("\nStep 8: Triggering ERASE_AND_PROGRAM (0x89 = 0x04)...")
             if not self.reader.write_register(0x89, 0x04, config.EEPROM_ADDR):
                 print("ERROR: EEPROM burn trigger failed")
                 return False
             print("Burn trigger ACK received ✓")
 
-            # Step 8: Wait for burn to complete
-            print("Step 8: Waiting for EEPROM burn to complete...")
+            # Step 10: Wait for burn to complete
+            print("Step 9: Waiting for EEPROM burn to complete...")
             for _ in range(20):
                 status = self.reader.read_register(0x8B, config.EEPROM_ADDR)
                 if status is not None and (status & 0x06) == 0:
@@ -112,7 +130,7 @@ class EnableOWI:
             else:
                 print("WARNING: EEPROM burn status timed out")
 
-            # Step 9: Verify final EEPROM value
+            # Step 11: Verify EEPROM
             verify = self.reader.read_register(0x30, config.EEPROM_ADDR)
             if verify is None:
                 print("ERROR: Could not verify EEPROM value")
@@ -122,6 +140,16 @@ class EnableOWI:
             print(f"  OWI_XCVR_EN (bit 3): {(verify >> 3) & 1}")
             print(f"  OWI_EN      (bit 2): {(verify >> 2) & 1}")
             print(f"  I2C_EN      (bit 1): {(verify >> 1) & 1}")
+
+            # Step 12: Verify all three volatile registers
+            print("\nFinal volatile register check:")
+            dig_final = self.reader.read_register(0x06, config.I2C_CONTROL)
+            owi_int_final = self.reader.read_register(0x0B, config.I2C_CONTROL)
+            dlpwr_final = self.reader.read_register(0x54, config.I2C_CONTROL)
+
+            print(f"  DIG_IF_CTRL      (0x22/0x06): 0x{dig_final:02X} — OWI_XCVR_EN: {(dig_final >> 3) & 1}, OWI_EN: {(dig_final >> 2) & 1}")
+            print(f"  OWI_INTERRUPT_EN (0x22/0x0B): 0x{owi_int_final:02X} — OWI_INT_EN: {owi_int_final & 1}")
+            print(f"  DLPWR            (0x22/0x54): 0x{dlpwr_final:02X} — OWI_CLK_EN: {dlpwr_final & 1}")
 
             if verify == new_dig:
                 print("\nOWI permanently enabled! Power cycle to verify.")

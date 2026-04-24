@@ -128,7 +128,6 @@ class PGA305Reader:
             except:
                 response = b''
 
-            # Check ACK then verify register 0x01 reads 0x03
             if len(response) >= 2 and response[0:2] == b'\x06\x0a':
                 if self.read_register(0x01, config.PGA305_I2C_ADDR) == 0x03:
                     return True
@@ -155,11 +154,35 @@ class PGA305Reader:
         if verbose:
             print("Command mode active")
 
+        comp_ctrl = self.read_register(0x0C, config.PGA305_I2C_ADDR)
+        print(f"COMPENSATION_CONTROL (0x20/0x0C): 0x{comp_ctrl:02X}")
+        print(f"  IF_SEL      (bit 1): {(comp_ctrl >> 1) & 1}")
+        print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
+                
         dig_if = self.read_register(0x06, config.I2C_CONTROL)
         if dig_if is not None and not (dig_if >> 3) & 1:
-            self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)    
+            self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
+
+        dig_if = self.read_register(0x06, config.I2C_CONTROL)
+        if dig_if is not None and not (dig_if >> 3) & 1:
+            self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
+
+        owi_int = self.read_register(0x0B, config.I2C_CONTROL)
+        self.write_register(0x0B, 0x00, config.I2C_CONTROL)
+        #if owi_int is not None and not (owi_int & 1):
+           # self.write_register(0x0B, 0x00, config.I2C_CONTROL)
+
+        dlpwr = self.read_register(0x54, config.I2C_CONTROL)
+        if dlpwr is not None and not (dlpwr & 1):
+            self.write_register(0x54, 0x01, config.I2C_CONTROL)
 
         self.read_dig_if_ctrl()
+
+        owi_int_check = self.read_register(0x0B, config.I2C_CONTROL)
+        print(f"OWI_INTERRUPT_EN (0x22/0x0B) = 0x{owi_int_check:02X} — OWI_INT_EN: {owi_int_check & 1}")
+
+        dlpwr_check = self.read_register(0x54, config.I2C_CONTROL)
+        print(f"DLPWR            (0x22/0x54) = 0x{dlpwr_check:02X} — OWI_CLK_EN: {dlpwr_check & 1}")
 
         if self.register_map:
             pn_addrs = [self.register_map.get(f'EEPROM_ARRAY PN_{s}', d)

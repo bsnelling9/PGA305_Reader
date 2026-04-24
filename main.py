@@ -9,6 +9,7 @@ from verify_coefficients import VerifyCoefficients
 from scan_mux_channels import ScanMuxChannels
 from enable_owi import EnableOWI
 from handle_uart import HandleUART
+from read_control_registers import ReadControlRegisters
 
 def print_header():
     print("\n" + "="*70)
@@ -29,6 +30,7 @@ def print_menu():
     print("  8. Timing diagnostic scan (all channels, multiple iterations)")
     print("  9. Enable OWI on channel 1")
     print("  10. Handle UART")
+    print("  11. Read Control Registers")
     print("  0. Exit")
     print("-" * 70)
 
@@ -122,7 +124,7 @@ def main():
         print_header()
         print_menu()
 
-        choice = input("\nSelect option (0-8): ").strip()
+        choice = input("\nSelect option (0-11): ").strip()
 
         if choice == '0':
             print("\nExiting...")
@@ -157,6 +159,8 @@ def main():
 
         elif choice == '10':
             HandleUART(channel=config.CHANNEL).run()
+        elif choice == '11':
+            ReadControlRegisters(channel=config.CHANNEL).run()
         
         else:
             print("\nInvalid choice. Please select 0-7.")
