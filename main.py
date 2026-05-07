@@ -5,6 +5,7 @@ from scripts.gpio_diagnostic import run_gpio_diagnostic
 from scripts.verify_calibration import run_calibration_verification
 from read_tadc import ReadTADC
 from read_eeprom import ReadEEPROM
+from write_eeprom import WriteEEPROM
 from verify_coefficients import VerifyCoefficients
 from scan_mux_channels import ScanMuxChannels
 from enable_owi import EnableOWI
@@ -28,9 +29,10 @@ def print_menu():
     print("  6. Read EEPROM configuration")
     print("  7. Verify coefficients against DUT file")
     print("  8. Timing diagnostic scan (all channels, multiple iterations)")
-    print("  9. Enable OWI on channel 1")
+    print("  9. Enable OWI")
     print("  10. Handle UART")
     print("  11. Read Control Registers")
+    print("  12. Write EEPROM register")
     print("  0. Exit")
     print("-" * 70)
 
@@ -159,8 +161,12 @@ def main():
 
         elif choice == '10':
             HandleUART(channel=config.CHANNEL).run()
+       
         elif choice == '11':
             ReadControlRegisters(channel=config.CHANNEL).run()
+
+        elif choice == '12':
+            WriteEEPROM(channel=config.CHANNEL).run()
         
         else:
             print("\nInvalid choice. Please select 0-7.")

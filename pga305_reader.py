@@ -103,8 +103,9 @@ class PGA305Reader:
         return value
 
     def write_register(self, reg_addr: int, value: int, i2c_addr: int) -> bool:
-        """Write a single 8-bit register to the PGA305."""
+        
         response = self.send_command(f"imw{i2c_addr:02X}{reg_addr:02X}{value:02X}")
+        
         return len(response) > 0 and response[0] == 6
 
     def enter_command_mode(self, max_retries=None) -> bool:
@@ -168,9 +169,6 @@ class PGA305Reader:
             self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
 
         owi_int = self.read_register(0x0B, config.I2C_CONTROL)
-        self.write_register(0x0B, 0x00, config.I2C_CONTROL)
-        #if owi_int is not None and not (owi_int & 1):
-           # self.write_register(0x0B, 0x00, config.I2C_CONTROL)
 
         dlpwr = self.read_register(0x54, config.I2C_CONTROL)
         if dlpwr is not None and not (dlpwr & 1):

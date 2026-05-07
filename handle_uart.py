@@ -1,7 +1,7 @@
 import config
 from pga305_reader import PGA305Reader
 from typing import Optional
-
+## This can probably be removed
 # I2C address for UART registers (page 0x7)
 UART_I2C_ADDR = 0x27
 

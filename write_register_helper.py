@@ -25,5 +25,5 @@ def write_register(reader: PGA305Reader, page: int, addr: int, val: int) -> bool
         print(f"ERROR: Write did not stick — expected 0x{val:02X} got 0x{readback:02X}")
         return False
 
-    print(f"  0x{addr:02X} persisted: 0x{readback:02X} ✓")
+    print(f"  0x{addr:02X} persisted: 0x{readback:02X}")
     return True

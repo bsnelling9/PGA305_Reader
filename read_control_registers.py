@@ -48,7 +48,6 @@ class ReadControlRegisters:
             else:
                 print(f"  0x{addr:02X}  {name:<30}  0x{val:02X}  ({val:3d})")
 
-        print()
         print("-" * 70)
         print("PAGE 0x2 — Control and Status  (I2C 0x22)")
         print("-" * 70)
@@ -110,9 +109,6 @@ class ReadControlRegisters:
 
                     readback = self.reader.read_register(addr, i2c_addr)
                     print(f"  {name} after: 0x{readback:02X}")
-
-                except ValueError:
-                    print("ERROR: Invalid input")
 
                 except ValueError:
                     print("ERROR: Invalid input")

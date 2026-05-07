@@ -14,7 +14,6 @@ PGA305_I2C_ADDR = 0x20
 I2C_CONTROL   = 0x22 
 EEPROM_ADDR = 0x25  
 
-
 CM_COMMAND_DELAY = 2.5      # Delay after cm_ command (seconds) - STM32 needs 2+ seconds
 I2C_RESET_DELAY = 1.0       # Delay after i2cr command (seconds)
 CHANNEL_SWITCH_DELAY = 0.5  # Delay after changing multiplexer channel (seconds)

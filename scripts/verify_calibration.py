@@ -489,7 +489,7 @@ def verify_calibration(reader, channel, verbose=True):
             warnings.append("DAC is DISABLED - sensor will not produce output")
         elif dac_en is not None:
             if verbose:
-                print(f"  ✓  DAC is enabled")
+                print(f"  DAC is enabled")
 
         # Check 6: Bridge should be enabled
         brdg = afe_raw.get("BRDG_CTRL")
@@ -497,7 +497,7 @@ def verify_calibration(reader, channel, verbose=True):
             warnings.append("Bridge excitation is DISABLED - sensor cannot measure pressure")
         elif brdg is not None:
             if verbose:
-                print(f"  ✓  Bridge excitation is enabled")
+                print(f" Bridge excitation is enabled")
 
         # Check 7: NORMAL_HIGH should be set (typically 0x3FFF for 14-bit DAC)
         if normal_high is not None:
