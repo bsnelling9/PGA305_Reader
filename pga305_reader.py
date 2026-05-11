@@ -161,18 +161,18 @@ class PGA305Reader:
         print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
                 
         dig_if = self.read_register(0x06, config.I2C_CONTROL)
-        if dig_if is not None and not (dig_if >> 3) & 1:
-            self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
+        #if dig_if is not None and not (dig_if >> 3) & 1:
+            #self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
 
         dig_if = self.read_register(0x06, config.I2C_CONTROL)
-        if dig_if is not None and not (dig_if >> 3) & 1:
-            self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
+        #if dig_if is not None and not (dig_if >> 3) & 1:
+           # self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
 
         owi_int = self.read_register(0x0B, config.I2C_CONTROL)
 
         dlpwr = self.read_register(0x54, config.I2C_CONTROL)
-        if dlpwr is not None and not (dlpwr & 1):
-            self.write_register(0x54, 0x01, config.I2C_CONTROL)
+        #if dlpwr is not None and not (dlpwr & 1):
+            #self.write_register(0x54, 0x01, config.I2C_CONTROL)
 
         self.read_dig_if_ctrl()
 
