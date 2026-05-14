@@ -1,23 +1,45 @@
 import config
 from pga305_reader import PGA305Reader
+import time
+
+def labview_style_conversion(p1, p2, p3):
+    multiplier = -1 if (p3 // 128) > 0 else 1
+    magnitude = ((p3 % 128) << 16) | (p2 << 8) | p1
+    return magnitude * multiplier
 
 
 def calculate_dac_output(reader):
-    padc1 = reader.read_register(0x20, config.I2C_CONTROL)
-    padc2 = reader.read_register(0x21, config.I2C_CONTROL)
-    padc3 = reader.read_register(0x22, config.I2C_CONTROL)
+    padc_samples = []
+    tadc_samples = []
 
-    padc = (padc3 << 16) | (padc2 << 8) | padc1
-    print(f"  PADC = 0x{padc:06X} ({padc})")
+    for i in range(12):
+        p_bytes = reader.read_registers_sequentially(0x20, 3, config.I2C_CONTROL)
+        if p_bytes and len(p_bytes) == 3:
+            padc_samples.append(labview_style_conversion(p_bytes[0], p_bytes[1], p_bytes[2]))
 
-    tadc1 = reader.read_register(0x24, config.I2C_CONTROL)
-    tadc2 = reader.read_register(0x25, config.I2C_CONTROL)
-    tadc3 = reader.read_register(0x26, config.I2C_CONTROL)
+        t_bytes = reader.read_registers_sequentially(0x24, 3, config.I2C_CONTROL)
+        if t_bytes and len(t_bytes) == 3:
+            tadc_samples.append(labview_style_conversion(t_bytes[0], t_bytes[1], t_bytes[2]))
 
-    tadc = (tadc3 << 16) | (tadc2 << 8) | tadc1
-    print(f"  TADC = 0x{tadc:06X} ({tadc})")
+        time.sleep(0.02)
 
+    if len(padc_samples) > 0:
+        avg_padc = sum(padc_samples) / len(padc_samples)
+        avg_tadc = sum(tadc_samples) / len(tadc_samples)
 
+        p_variance = sum((x - avg_padc) ** 2 for x in padc_samples) / len(padc_samples)
+        p_std_dev = p_variance ** 0.5
+
+        print(f"  Final PADC (Mean of 12): {avg_padc:.2f}")
+        print(f"  PADC Sigma: {p_std_dev:.2f}")
+
+        if p_std_dev > 4000:
+            print("  Warning: Signal noise exceeds LabVIEW threshold of 4000")
+
+        print(f"  Final TADC (Mean of 12): {avg_tadc:.2f}")
+    else:
+        print("  ERROR: Failed to collect samples")
+    
 def read_dac_passive(reader):
 
     print("Entering command mode...")
@@ -50,6 +72,15 @@ def read_dac_passive(reader):
 
     print("\nReading ADC values...")
     calculate_dac_output(reader)
+    while True:
+        user_input = input("\nEnter r to read data of x to exit: ").strip().lower()
+
+        if user_input == 'r':
+            calculate_dac_output(reader)
+        elif user_input == 'x':
+            break
+        else:
+            print("Unknown command. Press 'r' to read data or 'x' to quit.")
 
 
 def test_output():
@@ -102,7 +133,7 @@ def test_output():
             calculate_dac_output(reader)
 
             print("\n" + "=" * 70)
-            print("OUTPUT READY — Measure voltage with multimeter now")
+            print("OUTPUT READY — Measure voltage")
             print("=" * 70)
 
             while True:
