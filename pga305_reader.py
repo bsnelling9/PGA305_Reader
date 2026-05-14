@@ -41,6 +41,30 @@ class PGA305Reader:
             self.inst.close()
             self.inst = None
 
+    def read_registers_sequentially(self, start_reg: int, count: int, i2c_addr: int = None) -> Optional[list]:
+        if i2c_addr is None:
+            i2c_addr = config.PGA305_I2C_ADDR
+
+        cmd_list = [f"imr{i2c_addr:02X}{start_reg + i:02X}" for i in range(count)]
+        full_cmd = "\\".join(cmd_list)
+        
+        self.inst.write_raw((full_cmd + '\n').encode('ascii'))
+        time.sleep(0.15)
+        if self.inst.bytes_in_buffer > 0:
+            self.inst.read_bytes(self.inst.bytes_in_buffer)
+
+        self.inst.write_raw((full_cmd + '\n').encode('ascii'))
+        time.sleep(0.15)
+        raw = self.inst.read_bytes(self.inst.bytes_in_buffer)
+
+        try:
+            response_str = raw.decode('ascii', errors='ignore').strip()
+            parts = [p.strip() for p in response_str.replace('\\', '\n').split() if len(p.strip()) == 2]
+            if len(parts) >= count:
+                return [int(p, 16) for p in parts[:count]]
+        except Exception:
+            return None
+        return None
 
     def send_command(self, cmd: str) -> bytes:
         """Send command to STM32 and return raw response."""
@@ -159,20 +183,7 @@ class PGA305Reader:
         print(f"COMPENSATION_CONTROL (0x20/0x0C): 0x{comp_ctrl:02X}")
         print(f"  IF_SEL      (bit 1): {(comp_ctrl >> 1) & 1}")
         print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
-                
-        dig_if = self.read_register(0x06, config.I2C_CONTROL)
-        #if dig_if is not None and not (dig_if >> 3) & 1:
-            #self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
-
-        dig_if = self.read_register(0x06, config.I2C_CONTROL)
-        #if dig_if is not None and not (dig_if >> 3) & 1:
-           # self.write_register(0x06, dig_if | 0x08, config.I2C_CONTROL)
-
-        owi_int = self.read_register(0x0B, config.I2C_CONTROL)
-
-        dlpwr = self.read_register(0x54, config.I2C_CONTROL)
-        #if dlpwr is not None and not (dlpwr & 1):
-            #self.write_register(0x54, 0x01, config.I2C_CONTROL)
+               
 
         self.read_dig_if_ctrl()
 

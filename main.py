@@ -13,7 +13,8 @@ from enable_owi import EnableOWI
 from handle_uart import HandleUART
 from read_control_registers import ReadControlRegisters
 from test_output import test_output
-
+from calculate_pressure import calculate_pressure
+from reset_eeprom import ResetEEPROM
 
 def print_header():
     print("\n" + "="*70)
@@ -38,9 +39,9 @@ def print_menu():
     print("  12. Write EEPROM register")
     print("  13. Read passive (compensation control + DAC)")
     print("  14. Read AMUX_CTRL")
-    print("  15. Read ADC passive (PADC/TADC)")
-    print("  16. Test standalone output")
+    print("  15. Test standalone output")
     print("  a.  Calculate/verify EEPROM CRC")
+    print("  b.  Calculate pressure (P)")
     print("  0.  Exit")
     print("-" * 70)
 
@@ -122,25 +123,30 @@ def read_passive():
 
         dac_reg0_1 = reader.read_register(0x30, config.I2C_CONTROL)
         dac_reg0_2 = reader.read_register(0x31, config.I2C_CONTROL)
+        
         if dac_reg0_1 is not None and dac_reg0_2 is not None:
             dac_code = (dac_reg0_2 << 8) | dac_reg0_1
             print(f"\nDAC_REG0_1 (0x22/0x30) = 0x{dac_reg0_1:02X}")
             print(f"DAC_REG0_2 (0x22/0x31) = 0x{dac_reg0_2:02X}")
             print(f"DAC code = 0x{dac_code:04X} ({dac_code})")
+        
         else:
             print("READ FAILED")
 
         print("\nEntering command mode...")
+        
         if not reader.enter_command_mode():
             print("ERROR: Could not enter command mode")
             return
 
         comp_ctrl = reader.read_register(0x0C, config.PGA305_I2C_ADDR)
+        
         if comp_ctrl is not None:
             print(f"\nAFTER command mode:")
             print(f"COMPENSATION_CONTROL = 0x{comp_ctrl:02X}")
             print(f"  IF_SEL      (bit 1): {(comp_ctrl >> 1) & 1}")
             print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
+        
         else:
             print("READ FAILED after command mode")
 
@@ -171,59 +177,6 @@ def read_amux_ctrl():
             print(f"  TSEM_N          (bit 3): {(amux_ctrl >> 3) & 1}")
         else:
             print("READ FAILED")
-
-    except Exception as e:
-        print(f"\nERROR: {e}")
-
-    finally:
-        reader.disconnect_channel()
-        reader.disconnect()
-
-
-def read_adc_passive():
-    reader = PGA305Reader()
-
-    try:
-        print(f"\nConnecting to {config.SERIAL_PORT}...")
-        reader.connect()
-
-        print(f"Switching to channel {config.CHANNEL}...")
-        reader.set_channel(config.CHANNEL)
-
-        padc1 = reader.read_register(0x20, config.I2C_CONTROL)
-        padc2 = reader.read_register(0x21, config.I2C_CONTROL)
-        padc3 = reader.read_register(0x22, config.I2C_CONTROL)
-        tadc1 = reader.read_register(0x24, config.I2C_CONTROL)
-        tadc2 = reader.read_register(0x25, config.I2C_CONTROL)
-        tadc3 = reader.read_register(0x26, config.I2C_CONTROL)
-
-        if all(v is not None for v in [padc1, padc2, padc3]):
-            padc = (padc3 << 16) | (padc2 << 8) | padc1
-            print(f"\nPADC_DATA1 (0x22/0x20) = 0x{padc1:02X}")
-            print(f"PADC_DATA2 (0x22/0x21) = 0x{padc2:02X}")
-            print(f"PADC_DATA3 (0x22/0x22) = 0x{padc3:02X}")
-            print(f"PADC combined          = 0x{padc:06X} ({padc})")
-        else:
-            print("PADC READ FAILED")
-
-        if all(v is not None for v in [tadc1, tadc2, tadc3]):
-            tadc = (tadc3 << 16) | (tadc2 << 8) | tadc1
-            print(f"\nTADC_DATA1 (0x22/0x24) = 0x{tadc1:02X}")
-            print(f"TADC_DATA2 (0x22/0x25) = 0x{tadc2:02X}")
-            print(f"TADC_DATA3 (0x22/0x26) = 0x{tadc3:02X}")
-            print(f"TADC combined          = 0x{tadc:06X} ({tadc})")
-        else:
-            print("TADC READ FAILED")
-
-        alpwr   = reader.read_register(0x50, config.I2C_CONTROL)
-        adc_cfg = reader.read_register(0x29, config.I2C_CONTROL)
-        if alpwr is not None:
-            print(f"\nALPWR     (0x22/0x50) = 0x{alpwr:02X} ({alpwr:08b}b)")
-            print(f"  SD          (bit 0): {alpwr & 1}")
-            print(f"  ADC_EN_VREF (bit 2): {(alpwr >> 2) & 1}")
-        if adc_cfg is not None:
-            print(f"\nADC_CFG_1 (0x22/0x29) = 0x{adc_cfg:02X} ({adc_cfg:08b}b)")
-            print(f"  ADC_EN      (bit 4): {(adc_cfg >> 4) & 1}")
 
     except Exception as e:
         print(f"\nERROR: {e}")
@@ -353,13 +306,15 @@ def main():
         elif choice == '14':
             read_amux_ctrl()
         elif choice == '15':
-            read_adc_passive()
-        elif choice == '16':
             test_output()
         elif choice == 'a':
             calculate_crc()
+        elif choice == 'b':
+            calculate_pressure()
+        elif choice == 'c':
+            ResetEEPROM(channel=config.CHANNEL).run()
         else:
-            print("\nInvalid choice. Please select 0-16.")
+            print("\nInvalid choice. Please select 0-15.")
 
         input("\nPress Enter to continue...")
 
