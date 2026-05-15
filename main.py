@@ -15,6 +15,8 @@ from read_control_registers import ReadControlRegisters
 from test_output import test_output
 from calculate_pressure import calculate_pressure
 from reset_eeprom import ResetEEPROM
+from write_calibration import CalibrationWriter
+from helpers.calculate_crc import calculate_crc
 
 def print_header():
     print("\n" + "="*70)
@@ -40,64 +42,11 @@ def print_menu():
     print("  13. Read passive (compensation control + DAC)")
     print("  14. Read AMUX_CTRL")
     print("  15. Test standalone output")
+    print("  16. Write complete calibration file (Automated Flash)")
     print("  a.  Calculate/verify EEPROM CRC")
     print("  b.  Calculate pressure (P)")
     print("  0.  Exit")
     print("-" * 70)
-
-
-def calculate_crc():
-    """Trigger hardware CRC calculation and report result."""
-    reader = PGA305Reader()
-
-    try:
-        print(f"\nConnecting to {config.SERIAL_PORT}...")
-        reader.connect()
-
-        print(f"Switching to channel {config.CHANNEL}...")
-        reader.set_channel(config.CHANNEL)
-
-        print("\n  Entering command mode...")
-        if not reader.enter_command_mode():
-            print("  ERROR: Could not enter command mode")
-            return
-
-        print("  Triggering hardware CRC calculation...")
-
-        if not reader.write_register(0x8A, 0x01, config.EEPROM_ADDR):
-            print("  ERROR: Could not write EEPROM_CRC register")
-            return
-
-        # Poll until CRC_CHECK_IN_PROGRESS clears
-        for _ in range(20):
-            time.sleep(0.05)
-            status = reader.read_register(0x8C, config.EEPROM_ADDR)
-            if status is not None:
-                crc_in_prog = status & 1
-                crc_good    = (status >> 1) & 1
-                print(f"  CRC_STATUS = 0x{status:02X}  IN_PROG={crc_in_prog}  GOOD={crc_good}")
-                if crc_in_prog == 0:
-                    break
-
-        crc_value = reader.read_register(0x7F, config.EEPROM_ADDR)
-        if crc_value is not None:
-            print(f"  EEPROM_CRC_VALUE (0x7F) = 0x{crc_value:02X}")
-        else:
-            print("  ERROR: Could not read CRC value")
-
-        if crc_good == 1:
-            print("\n  CRC OK — EEPROM is valid.")
-        else:
-            print("\n  WARNING: CRC bad — EEPROM contents do not match stored CRC.")
-            print("  Use option 12 (Write EEPROM) → C to retrigger CRC after writes.")
-
-    except Exception as e:
-        print(f"\nERROR: {e}")
-
-    finally:
-        reader.disconnect_channel()
-        reader.disconnect()
-
 
 def read_passive():
     reader = PGA305Reader()
@@ -307,6 +256,8 @@ def main():
             read_amux_ctrl()
         elif choice == '15':
             test_output()
+        elif choice == '16':
+            CalibrationWriter().run()
         elif choice == 'a':
             calculate_crc()
         elif choice == 'b':

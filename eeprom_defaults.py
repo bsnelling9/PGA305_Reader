@@ -1,6 +1,6 @@
 # Default EEPROM state — every register defaults to 0x00 unless listed here.
 # Pages 0x00-0x0D only. Page E (PN/SN/PRANGE) is skipped. Page F (CRC) is retriggered.
-DEFAULT_STATE = {
+EEPROM_DEFAULTS = {
     0x02: 0x20,  # H0_MSB — matches TI factory default
     0x0E: 0x10,  # G0_MSB — matches TI factory default
     
