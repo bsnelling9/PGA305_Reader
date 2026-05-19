@@ -4,12 +4,6 @@ from eeprom_addresses import EEPROM_REGISTERS, EEPROM_PAGES
 
 
 class ReadEEPROM:
-    """
-    Reads and displays all EEPROM registers from a PGA305.
-    Register addresses are taken directly from eeprom_addresses.py
-    which is the single source of truth for address mapping.
-    """
-
     def __init__(self, channel=1):
         self.channel = channel
         self.reader = PGA305Reader()
@@ -48,11 +42,6 @@ class ReadEEPROM:
             self.reader.disconnect()
 
     def _print_registers(self):
-        """
-        Iterate through EEPROM_REGISTERS in address order,
-        printing page headers and register values.
-        All addresses come from eeprom_addresses.py.
-        """
         current_page_start = None
 
         for addr, label in sorted(EEPROM_REGISTERS.items()):
@@ -75,7 +64,6 @@ class ReadEEPROM:
                 print(f"  0x{addr:02X}  {label:<30}  0x{value:02X}  ({value:3d})")
 
     def _get_page_start(self, addr: int) -> int:
-        """Return the page start address for a given register address."""
         for page_start in sorted(EEPROM_PAGES.keys(), reverse=True):
             if addr >= page_start:
                 return page_start

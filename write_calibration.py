@@ -9,25 +9,10 @@ EEPROM_PAGE_SIZE = 8
 class CalibrationWriter:
     def __init__(self):
         self.reader = PGA305Reader()
-        
-        # Dynamically map the base directory relative to this script's folder location
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.DUT_BASE_DIR = os.path.abspath(os.path.join(current_dir, "..", "Calibration_data"))
         
-        # Explicit register targets mapped LSB to MSB.
-        # This handles cross-page boundaries (like PADC_OFFSET) safely.
-        self.REGISTER_MAP = {
-            "H0": [0x00, 0x01, 0x02], "H1": [0x03, 0x04, 0x05], "H2": [0x06, 0x07, 0x08], "H3": [0x09, 0x0A, 0x0B],
-            "G0": [0x0C, 0x0D, 0x0E], "G1": [0x0F, 0x10, 0x11], "G2": [0x12, 0x13, 0x14], "G3": [0x15, 0x16, 0x17],
-            "N0": [0x18, 0x19, 0x1A], "N1": [0x1B, 0x1C, 0x1D], "N2": [0x1E, 0x1F, 0x20], "N3": [0x21, 0x22, 0x23],
-            "M0": [0x24, 0x25, 0x26], "M1": [0x27, 0x28, 0x29], "M2": [0x2A, 0x2B, 0x2C], "M3": [0x2D, 0x2E, 0x2F],
-            "TADC_GAIN": [0x5E, 0x5F, 0x60],
-            "TADC_OFFSET": [0x61, 0x62, 0x63],
-            "PADC_GAIN": [0x44, 0x45, 0x46],
-            "PADC_OFFSET": [0x47, 0x48, 0x49],
-            "OFF_EN": [0x69]
-        }
-
     def parse_dut_file(self, file_path):
         """Parses the calibration text file and extracts targeted byte updates."""
         updates = {}
@@ -51,12 +36,11 @@ class CalibrationWriter:
                         key = key.strip().upper()
                         val = val.strip().replace('"', '')
 
-                        # Skip blank settings entirely (leaves existing EEPROM values untouched)
                         if not val:
                             continue
 
-                        if key in self.REGISTER_MAP:
-                            reg_addrs = self.REGISTER_MAP[key]
+                        if key in COEFFICIENTS_MAP:
+                            reg_addrs = COEFFICIENTS_MAP[key]
                             
                             try:
                                 int_val = int(val, 16)
@@ -92,14 +76,14 @@ class CalibrationWriter:
 
     def process_flash_routine(self, target_updates):
         """Groups addresses into pages, merges updates with existing data, and writes."""
-        # Find all unique pages that require modifications
+
         pages_to_update = sorted(list(set(addr // EEPROM_PAGE_SIZE for addr in target_updates.keys())))
 
         for page in pages_to_update:
             page_start = page * EEPROM_PAGE_SIZE
             print(f"Flashing Page 0x{page:02X} (Addresses 0x{page_start:02X}-0x{page_start+7:02X})...")
             
-            # Read complete page to protect unchanged configurations on the same page
+
             page_data = []
             for a in range(page_start, page_start + EEPROM_PAGE_SIZE):
                 current_val = self.reader.read_register(a, config.EEPROM_ADDR)
@@ -108,12 +92,12 @@ class CalibrationWriter:
                     return False
                 page_data.append(current_val)
 
-            # Map our new targeted data over the existing bytes
+
             for addr, new_byte in target_updates.items():
                 if page_start <= addr < (page_start + EEPROM_PAGE_SIZE):
                     page_data[addr - page_start] = new_byte
 
-            # Execute the page write macro
+
             if not self._program_page(page, page_data):
                 print(f"  CRITICAL: Write execution failed at page 0x{page:02X}")
                 return False
@@ -128,7 +112,6 @@ class CalibrationWriter:
         part_num = input("Enter Part Number (e.g., A10619): ").strip()
         serial_num = input("Enter Serial Number (e.g., 000001): ").strip()
 
-        # Clean, explicit path building using your base directory variable
         file_path = os.path.join(self.DUT_BASE_DIR, part_num, f"{serial_num}.txt")
         
         try:

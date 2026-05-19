@@ -57,9 +57,9 @@ class VerifyCoefficients:
                 print(" ERROR: Could not read sensor identity")
                 return
 
-            part_number   = sensor['part_number']
+            part_number = sensor['part_number']
             serial_number = sensor['serial_number']
-            serial_str    = f"{serial_number:06d}"
+            serial_str = f"{serial_number:06d}"
 
             print(f"  Part Number:   {part_number}")
             print(f"  Serial Number: {serial_str}")
@@ -82,7 +82,7 @@ class VerifyCoefficients:
             print("\nComparing coefficients...\n")
 
             all_match = True
-            filename  = os.path.basename(dut_path)
+            filename = os.path.basename(dut_path)
 
             for name, (lsb_addr, mid_addr, msb_addr) in COEFFICIENTS.items():
                 dut_value = dut_coeffs.get(name, '').strip()
@@ -122,7 +122,6 @@ class VerifyCoefficients:
                     if not match:
                         all_match = False
                         failed_matches.append(name)
-
                 print()
 
             print("="*70)
@@ -132,7 +131,6 @@ class VerifyCoefficients:
             else:
                 print("COEFFICIENTS that do not match:")
                 print(failed_matches)
-
             
             print("="*70)
 
@@ -156,7 +154,7 @@ class VerifyCoefficients:
             parser.read(dut_path)
         
         except Exception as e:
-            print(f"✗ ERROR reading DUT file: {e}")
+            print(f"ERROR reading DUT file: {e}")
             return None
 
         if 'Coefficients' not in parser:

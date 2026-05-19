@@ -6,6 +6,7 @@ def labview_padc(p1, p2, p3):
     """LabVIEW-style sign-magnitude conversion for 24-bit PADC."""
     multiplier = -1 if (p3 // 128) > 0 else 1
     magnitude = ((p3 % 128) << 16) | (p2 << 8) | p1
+    
     return magnitude * multiplier
 
 
@@ -24,7 +25,16 @@ def read_and_calculate(reader, padc_gain, padc_offset, off_en):
         print("  ERROR: Could not read PADC")
         return
 
-    print(f"  Raw bytes: p1=0x{p1:02X} p2=0x{p2:02X} p3=0x{p3:02X}")
+    print(f" p1=0x{p1:02X} p2=0x{p2:02X} p3=0x{p3:02X}")
+    print(f" Raw: p1={p1} p2={p2} p3={p3}")
+
+    t1 = reader.read_register(0x24, config.I2C_CONTROL)
+    t2 = reader.read_register(0x25, config.I2C_CONTROL)
+    t3 = reader.read_register(0x26, config.I2C_CONTROL)
+
+    print(f" t1=0x{t1:02X} t2=0x{t2:02X} t3=0x{t3:02X}")
+    print(f" Raw: t1={t1} t2={t2} t3={t3}")
+
 
     padc_raw = labview_padc(p1, p2, p3)
 
@@ -72,28 +82,34 @@ def calculate_pressure():
         gain_lsb = reader.read_register(0x44, config.EEPROM_ADDR)
         gain_mid = reader.read_register(0x45, config.EEPROM_ADDR)
         gain_msb = reader.read_register(0x46, config.EEPROM_ADDR)
+        
         if None in (gain_lsb, gain_mid, gain_msb):
             print("ERROR: Could not read PADC_GAIN")
             return
+        
         padc_gain = (gain_msb << 16) | (gain_mid << 8) | gain_lsb
 
         off_lsb = reader.read_register(0x47, config.EEPROM_ADDR)
         off_mid = reader.read_register(0x48, config.EEPROM_ADDR)
         off_msb = reader.read_register(0x49, config.EEPROM_ADDR)
+        
         if None in (off_lsb, off_mid, off_msb):
             print("ERROR: Could not read PADC_OFFSET")
             return
+        
         padc_offset = to_signed_24((off_msb << 16) | (off_mid << 8) | off_lsb)
 
         off_en_reg = reader.read_register(0x69, config.EEPROM_ADDR)
         if off_en_reg is None:
             print("ERROR: Could not read OFFSET_ENABLE")
             return
+        
         off_en = off_en_reg & 1
 
         print(f"\n  PADC_GAIN   = {padc_gain} (0x{padc_gain:06X})")
         print(f"  PADC_OFFSET = {padc_offset} (0x{padc_offset & 0xFFFFFF:06X})")
         print(f"  OFF_EN      = {off_en}")
+        
         if off_en:
             print(f"  Equation:   P = PGAIN x (PADC + POFFSET)  [Eq. 4]")
         else:

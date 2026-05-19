@@ -100,7 +100,7 @@ class ResetEEPROM:
 
     def _build_page_data(self, page):
         page_start = page * EEPROM_PAGE_SIZE
-        return [DEFAULT_STATE.get(page_start + i, 0x00) for i in range(EEPROM_PAGE_SIZE)]
+        return [EEPROM_DEFAULTS.get(page_start + i, 0x00) for i in range(EEPROM_PAGE_SIZE)]
 
     def _program_page(self, page, page_data):
         import time

@@ -106,7 +106,7 @@ class WriteEEPROM:
                 print(f"  Program complete (status=0x{status:02X})")
                 return True
 
-        print("  WARNING: EEPROM burn timed out")
+        print("  WARNING: EEPROM write timed out")
         return False
 
     def _write_register(self):
@@ -118,8 +118,8 @@ class WriteEEPROM:
                 print("ERROR: Address must be in EEPROM array range 0x00-0x7F")
                 return
 
-            name       = EEPROM_REGISTERS.get(addr, f"0x{addr:02X}")
-            page       = addr // EEPROM_PAGE_SIZE
+            name = EEPROM_REGISTERS.get(addr, f"0x{addr:02X}")
+            page = addr // EEPROM_PAGE_SIZE
             page_start = page * EEPROM_PAGE_SIZE
 
             print(f"\n  Register : {name} (0x{addr:02X})")
@@ -133,10 +133,10 @@ class WriteEEPROM:
 
             print("  Current page contents:")
             for i, v in enumerate(page_data):
-                a      = page_start + i
-                n      = EEPROM_REGISTERS.get(a, f"0x{a:02X}")
+                a = page_start + i
+                n = EEPROM_REGISTERS.get(a, f"0x{a:02X}")
                 marker = " <- changing" if a == addr else ""
-                print(f"    0x{a:02X}  {n:<30}  0x{v:02X}{marker}")
+                print(f"  0x{a:02X}  {n:<30}  0x{v:02X}{marker}")
 
             page_data[addr - page_start] = val
 
@@ -151,10 +151,10 @@ class WriteEEPROM:
             print("\n  Step 3: Verifying...")
             all_ok = True
             for i in range(EEPROM_PAGE_SIZE):
-                a        = page_start + i
+                a = page_start + i
                 expected = page_data[i]
                 readback = self.reader.read_register(a, config.EEPROM_ADDR)
-                ok       = readback == expected
+                ok = readback == expected
                 if not ok:
                     all_ok = False
                 n = EEPROM_REGISTERS.get(a, f"0x{a:02X}")
@@ -171,12 +171,12 @@ class WriteEEPROM:
                 calculate_crc(self.reader)
             else:
                 crc_status = self.reader.read_register(0x8C, config.EEPROM_ADDR)
-                crc_good   = (crc_status >> 1) & 1 if crc_status is not None else -1
+                crc_good = (crc_status >> 1) & 1 if crc_status is not None else -1
                 print(f"\n  CRC_STATUS = 0x{crc_status:02X}  CRC_GOOD = {crc_good}")
                 if crc_good == 1:
-                    print("  CRC OK — EEPROM is valid.")
+                    print("CRC OK — EEPROM is valid.")
                 else:
-                    print("  WARNING: CRC bad after page F write.")
+                    print("WARNING: CRC bad after page F write.")
 
             print("\n  Power cycle the board to reload from EEPROM.")
 
