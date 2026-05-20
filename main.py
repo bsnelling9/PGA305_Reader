@@ -42,7 +42,7 @@ def print_menu():
     print("  13. Read passive (compensation control + DAC)")
     print("  14. Read AMUX_CTRL")
     print("  15. Test standalone output")
-    print("  16. Write complete calibration file (Automated Flash)")
+    print("  16. Write Calibration Coefficients and Settings")
     print("  a.  Calculate/verify EEPROM CRC")
     print("  b.  Calculate pressure (P)")
     print("  0.  Exit")
@@ -256,6 +256,8 @@ def main():
             read_amux_ctrl()
         elif choice == '15':
             test_output()
+        #this will not pass the channel as it will always be channel 1
+        # This function will only be on my computer and not on the cal stations
         elif choice == '16':
             CalibrationWriter().run()
         elif choice == 'a':
