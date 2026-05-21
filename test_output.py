@@ -1,6 +1,7 @@
 import config
 from pga305_reader import PGA305Reader
 import time
+
 #clean this up as it has similar functions to calculate_pressure
 def labview_style_conversion(p1, p2, p3):
     multiplier = -1 if (p3 // 128) > 0 else 1

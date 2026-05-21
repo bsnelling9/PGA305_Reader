@@ -41,6 +41,29 @@ class PGA305Reader:
             self.inst.close()
             self.inst = None
 
+    def write_then_read_sequential(self, write_reg: int, write_val: int, i2c_addr: int, read_reg: int, read_count: int) -> Optional[list]:
+        write_cmd = f"imw{i2c_addr:02X}{write_reg:02X}{write_val:02X}"
+        read_cmds = [f"imr{i2c_addr:02X}{read_reg + i:02X}" for i in range(read_count)]
+        full_cmd = "\\".join([write_cmd] + read_cmds)
+
+        self.inst.write_raw((full_cmd + '\n').encode('ascii'))
+        time.sleep(0.15)
+        if self.inst.bytes_in_buffer > 0:
+            self.inst.read_bytes(self.inst.bytes_in_buffer)
+
+        self.inst.write_raw((full_cmd + '\n').encode('ascii'))
+        time.sleep(0.15)
+        raw = self.inst.read_bytes(self.inst.bytes_in_buffer)
+
+        try:
+            response_str = raw.decode('ascii', errors='ignore').strip()
+            parts = [p.strip() for p in response_str.replace('\\', '\n').split() if len(p.strip()) == 2]
+            if len(parts) >= read_count:
+                return [int(p, 16) for p in parts[-read_count:]]
+        except Exception:
+            return None
+        return None
+
     def read_registers_sequentially(self, start_reg: int, count: int, i2c_addr: int = None) -> Optional[list]:
         if i2c_addr is None:
             i2c_addr = config.PGA305_I2C_ADDR
@@ -67,7 +90,6 @@ class PGA305Reader:
         return None
 
     def send_command(self, cmd: str) -> bytes:
-        """Send command to STM32 and return raw response."""
         self.inst.write_raw((cmd + '\n').encode('ascii'))
         time.sleep(0.05)
 
@@ -80,22 +102,18 @@ class PGA305Reader:
             return b''
 
     def set_channel(self, channel: int):
-        """Connect I2C relays to the given sensor slot."""
         self.send_command(f"mx2{channel:02X}")
         time.sleep(config.CHANNEL_SWITCH_DELAY)
 
     def disconnect_channel(self):
-        """Disconnect all relays (I2C and DMM off)."""
         self.send_command("mx001")
         time.sleep(config.CHANNEL_SWITCH_DELAY)
 
     def reset_i2c(self):
-        """Toggle I2C peripheral to clear bus errors."""
         self.send_command("i2cr")
         time.sleep(config.I2C_RESET_DELAY)
 
     def read_register(self, reg_addr: int, i2c_addr: int = None) -> Optional[int]:
-        """Read a single 8-bit register from the PGA305."""
         if i2c_addr is None:
             i2c_addr = config.PGA305_I2C_ADDR
 
@@ -115,7 +133,6 @@ class PGA305Reader:
         return response.decode('ascii', errors='ignore').strip()
 
     def read_dig_if_ctrl(self) -> Optional[int]:
-        """Read DIG_IF_CTRL register (page 0x2, offset 0x06) to check OWI enable status."""
         # I2C address for page 0x2 = 0x40 + 0x02 = 0x42
         value = self.read_register(0x06, config.I2C_CONTROL)
         if value is not None:
@@ -133,11 +150,6 @@ class PGA305Reader:
         return len(response) > 0 and response[0] == 6
 
     def enter_command_mode(self, max_retries=None) -> bool:
-        """
-        Enter PGA305 digital interface (command) mode.
-        Retry logic works around an STM32 firmware timing issue
-        where the first I2C write in cm_ can silently fail.
-        """
         if max_retries is None:
             max_retries = config.CM_MAX_RETRIES
 
@@ -164,7 +176,6 @@ class PGA305Reader:
 
 
     def read_sensor_data(self, channel: int, verbose=True) -> Optional[Dict]:
-        """Read Part Number, Serial Number, and PRange from a PGA305 sensor."""
         if verbose:
             print(f"\nReading channel {channel}...")
 

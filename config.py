@@ -6,6 +6,13 @@ CHANNEL = 1
 
 REGISTER_MAP_PATH = "reference/PGA305 Control and Status Registers Map.csv"
 
+# T = normalized temperature ADC value
+# P = normalized pressure ADC value
+# All values are normalized by dividing by 2^(ADC_resolution - 2)
+# ADC_resolution is 24
+T_NORM = 4194304
+P_NORM = 4194304
+
 # PGA305 I2C Addresses
 # - 0x20: Runtime data (ADC values, compensated output)
 # - 0x22: Control and Status registers

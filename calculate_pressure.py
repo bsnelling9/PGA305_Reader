@@ -1,77 +1,62 @@
 import config
 from pga305_reader import PGA305Reader
+#T_NORM = 4194304
+#P_NORM = 4194304
 
-
-def labview_padc(p1, p2, p3):
-    """This follows the same conversion that is in labview"""
-    multiplier = -1 if (p3 // 128) > 0 else 1
-    magnitude = ((p3 % 128) << 16) | (p2 << 8) | p1
+def labview_padc(lsb, mid, msb):
+    multiplier = -1 if (msb // 128) > 0 else 1
+    magnitude = ((msb % 128) << 16) | (mid << 8) | lsb
     return magnitude * multiplier
 
 
 def to_signed_24(v):
-    """Convert unsigned 24-bit value to signed integer (for PADC_OFFSET)."""
     return v - 0x1000000 if v & 0x800000 else v
 
 
 def read_and_calculate(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en):
-    
-    p_bytes = reader.read_registers_sequentially(0x20, 3, config.I2C_CONTROL)
-    p1, p2, p3 = p_bytes[0], p_bytes[1], p_bytes[2]
 
-    if None in (p1, p2, p3):
-        print("  ERROR: Could not read PADC")
+    padc_msb = reader.write_then_read_sequential(0x09, 0x00, config.PGA305_I2C_ADDR, 0x04, 1)[0]
+    p_bytes = reader.write_then_read_sequential(0x09, 0x70, config.PGA305_I2C_ADDR, 0x04, 2)
+    padc_lsb = p_bytes[0]
+    padc_mid = p_bytes[1]
+
+    if None in (padc_lsb, padc_mid, padc_msb):
+        print("ERROR: Could not read PADC")
         return
 
-    print(f" p1=0x{p1:02X} p2=0x{p2:02X} p3=0x{p3:02X}")
-    print(f" Raw: p1={p1} p2={p2} p3={p3}")
+    tadc_msb = reader.write_then_read_sequential(0x09, 0x02, config.PGA305_I2C_ADDR, 0x04, 1)[0]
+    t_bytes = reader.write_then_read_sequential(0x09, 0x70, config.PGA305_I2C_ADDR, 0x04, 2)
+    tadc_lsb = t_bytes[0]
+    tadc_mid = t_bytes[1]
 
-    t_bytes = reader.read_registers_sequentially(0x24, 3, config.I2C_CONTROL)
-    t1, t2, t3 = t_bytes[0], t_bytes[1], t_bytes[2]
+    data_msb = reader.write_then_read_sequential(0x09, 0x04, config.PGA305_I2C_ADDR, 0x04, 1)[0]
+    d_bytes = reader.write_then_read_sequential(0x09, 0x70, config.PGA305_I2C_ADDR, 0x04, 2)
+    data_lsb = d_bytes[0]
+    data_mid = d_bytes[1]
 
-    print(f" t1=0x{t1:02X} t2=0x{t2:02X} t3=0x{t3:02X}")
-    print(f" Raw: t1={t1} t2={t2} t3={t3}")
-
-    padc_raw = labview_padc(p1, p2, p3)
-    tadc_raw = labview_padc(t1, t2, t3)
+    padc_raw = labview_padc(padc_lsb, padc_mid, padc_msb)
+    tadc_raw = labview_padc(tadc_lsb, tadc_mid, tadc_msb)
+    data_out_raw = ((data_msb % 128) << 16) | (data_mid << 8) | data_lsb
+    data_out = to_signed_24(data_out_raw)
+    dac = data_out / 1024
 
     if off_en:
         P = padc_gain * (padc_raw + padc_offset)
         T = tadc_gain * (tadc_raw + tadc_offset)
-        P_normalized = P / 4194304
-        T_normalized = T / 4194304
-        
-        print(f"  P = {padc_gain} x ({padc_raw} + {padc_offset})")
-        print(f"    = {padc_gain} x {padc_raw + padc_offset}")
-        print(f"  T = {tadc_gain} x ({tadc_raw} + {tadc_offset})")
-        print(f"    = {tadc_gain} x {tadc_raw + tadc_offset}")
     else:
         P = padc_gain * padc_raw + padc_offset
         T = tadc_gain * tadc_raw + tadc_offset
-        P_normalized = P / 4194304
-        T_normalized = T / 4194304
-        
-        print(f"  P = {padc_gain} x {padc_raw} + {padc_offset}")
-        print(f"  T = {tadc_gain} x {tadc_raw} + {tadc_offset}")
 
-    dac_bytes = reader.read_registers_sequentially(0x30, 2, config.I2C_CONTROL)
-    if dac_bytes and len(dac_bytes) == 2:
-        dac_code = (dac_bytes[1] << 8) | dac_bytes[0]
-    else:
-        dac_code = None
+    P_normalized = P / config.P_NORM
+    T_normalized = T / config.T_NORM
 
-    print(f"\n  PADC_RAW     = {padc_raw} (0x{padc_raw & 0xFFFFFF:06X})")
-    print(f"  PADC_GAIN    = {padc_gain}")
-    print(f"  PADC_OFFSET  = {padc_offset}")
-    print(f"  P            = {P}")
-    print(f"  P_normalized = {P_normalized:.6f}")
-    print(f"\n  TADC_RAW     = {tadc_raw} (0x{tadc_raw & 0xFFFFFF:06X})")
-    print(f"  TADC_GAIN    = {tadc_gain}")
-    print(f"  TADC_OFFSET  = {tadc_offset}")
-    print(f"  T            = {T}")
-    print(f"  T_normalized = {T_normalized:.6f}")
-    if dac_code is not None:
-        print(f"  DAC_REG0     = {dac_code} (0x{dac_code:04X})")
+    print(f"PADC         = {padc_raw} (0x{padc_raw & 0xFFFFFF:06X})  LSB=0x{padc_lsb:02X} MID=0x{padc_mid:02X} MSB=0x{padc_msb:02X}")
+    print(f"TADC         = {tadc_raw} (0x{tadc_raw & 0xFFFFFF:06X})  LSB=0x{tadc_lsb:02X} MID=0x{tadc_mid:02X} MSB=0x{tadc_msb:02X}")
+    print(f"DATA_OUT     = {data_out}  LSB=0x{data_lsb:02X} MID=0x{data_mid:02X} MSB=0x{data_msb:02X}")
+    print(f"DAC          = {dac:.4f}")
+    print()
+    print(f"P            = {P} ({P_normalized:.6f})")
+    print(f"T            = {T} ({T_normalized:.6f})")
 
 
 def calculate_pressure():
@@ -85,11 +70,14 @@ def calculate_pressure():
         reader.set_channel(config.CHANNEL)
 
         print("Entering command mode...")
+
         if not reader.enter_command_mode():
             print("ERROR: Could not enter command mode")
             return
-
-        print("Command mode active\n")
+        
+        comp_ctrl = reader.read_register(0x0C, config.PGA305_I2C_ADDR)
+        print(f"COMPENSATION_CONTROL = 0x{comp_ctrl:02X}")
+        
         print("Reading EEPROM settings (read once)...")
 
         gain_lsb = reader.read_register(0x44, config.EEPROM_ADDR)
@@ -139,18 +127,24 @@ def calculate_pressure():
         
         off_en = off_en_reg & 1
 
-        print(f"\n PADC_GAIN   = {padc_gain} (0x{padc_gain:06X})")
-        print(f"  PADC_OFFSET = {padc_offset} (0x{padc_offset & 0xFFFFFF:06X})")
-        print(f"  TADC_GAIN   = {tadc_gain} (0x{tadc_gain:06X})")
-        print(f"  TADC_OFFSET = {tadc_offset} (0x{tadc_offset & 0xFFFFFF:06X})")
-        print(f"  OFF_EN      = {off_en}")
+        print(f"\nPADC_GAIN = {padc_gain} (0x{padc_gain:06X})")
+        print(f"PADC_OFFSET = {padc_offset} (0x{padc_offset & 0xFFFFFF:06X})")
+        print(f"TADC_GAIN   = {tadc_gain} (0x{tadc_gain:06X})")
+        print(f"TADC_OFFSET = {tadc_offset} (0x{tadc_offset & 0xFFFFFF:06X})")
+        print(f"OFF_EN      = {off_en}")
         
         if off_en:
-            print(f"  Equation:   P = PGAIN x (PADC + POFFSET)  [Eq. 4]")
-            print(f"  Equation:   T = TGAIN x (TADC + TOFFSET)  [Eq. 5]")
+            print(f"Equation:   P = PGAIN x (PADC + POFFSET)  [Eq. 4]")
+            print(f"Equation:   T = TGAIN x (TADC + TOFFSET)  [Eq. 5]")
         else:
-            print(f"  Equation:   P = PGAIN x PADC + POFFSET    [Eq. 2]")
-            print(f"  Equation:   T = TGAIN x TADC + TOFFSET    [Eq. 3]")
+            print(f"Equation:   P = PGAIN x PADC + POFFSET    [Eq. 2]")
+            print(f"Equation:   T = TGAIN x TADC + TOFFSET    [Eq. 3]")
+
+        reader.write_register(0x0C, 0x00, config.PGA305_I2C_ADDR)
+        
+        comp_ctrl = reader.read_register(0x0C, config.PGA305_I2C_ADDR)
+        
+        print(f"COMPENSATION_CONTROL = 0x{comp_ctrl:02X}")
 
         print("\n" + "=" * 70)
         read_and_calculate(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en)
