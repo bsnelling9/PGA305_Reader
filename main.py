@@ -260,6 +260,8 @@ def main():
         # This function will only be on my computer and not on the cal stations
         elif choice == '16':
             CalibrationWriter().run()
+        elif choice == '17':
+            CalibrationWriter().run_zero_coefficients()
         elif choice == 'a':
             calculate_crc()
         elif choice == 'b':

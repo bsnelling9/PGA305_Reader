@@ -16,6 +16,39 @@ class CalibrationWriter:
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.DUT_BASE_DIR = os.path.abspath(os.path.join(current_dir, "..", "Calibration_data"))
+
+    def run_zero_coefficients(self):
+        try:
+            print(f"\nConnecting to sensor on Channel {COEFFICIENT_CHANNEL}...")
+            self.reader.connect()
+            self.reader.set_channel(COEFFICIENT_CHANNEL)
+
+            if not self.reader.enter_command_mode():
+                print("ERROR: failed to enter Command mode")
+                return
+
+            updates = {}
+            for key, reg_addrs in COEFFICIENTS_MAP.items():
+                for addr in reg_addrs:
+                    updates[addr] = 0x00
+
+            # Set TADC_GAIN and PADC_GAIN to 1
+            for i, addr in enumerate(COEFFICIENTS_MAP['TADC_GAIN']):
+                updates[addr] = (1 >> (8 * i)) & 0xFF
+            for i, addr in enumerate(COEFFICIENTS_MAP['PADC_GAIN']):
+                updates[addr] = (1 >> (8 * i)) & 0xFF
+
+            print("Zeroing all coefficients, setting TADC_GAIN=1, PADC_GAIN=1...")
+            print(updates)
+            if self.process_flash_routine(updates):
+                calculate_crc(self.reader)
+                print("\nDone. Cycle board power.")
+
+        except Exception as e:
+            print(f"\nERROR: {e}")
+        finally:
+            self.reader.disconnect_channel()
+            self.reader.disconnect()
         
     def parse_dut_file(self, file_path):
         updates = {}

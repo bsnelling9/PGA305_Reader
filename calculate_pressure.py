@@ -36,7 +36,7 @@ def read_and_calculate(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, o
 
     padc_raw = labview_padc(padc_lsb, padc_mid, padc_msb)
     tadc_raw = labview_padc(tadc_lsb, tadc_mid, tadc_msb)
-    data_out_raw = ((data_msb % 128) << 16) | (data_mid << 8) | data_lsb
+    data_out_raw = (data_msb << 16) | (data_mid << 8) | data_lsb
     data_out = to_signed_24(data_out_raw)
     dac = data_out / 1024
 
