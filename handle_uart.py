@@ -6,15 +6,15 @@ from typing import Optional
 UART_I2C_ADDR = 0x27
 
 # UART register offsets
-UART_CONFIG           = 0x00
-UART_EN               = 0x01
-BAUD_RATE_LO          = 0x02
-BAUD_RATE_HI          = 0x03
-UART_LINE_STATUS      = 0x04
+UART_CONFIG = 0x00
+UART_EN = 0x01
+BAUD_RATE_LO = 0x02
+BAUD_RATE_HI = 0x03
+UART_LINE_STATUS = 0x04
 UART_INTERRUPT_STATUS = 0x08
 UART_INTERRUPT_ENABLE = 0x0A
-UART_RX_BUF_0         = 0x0C
-UART_RX_BUF_1         = 0x0E
+UART_RX_BUF_0 = 0x0C
+UART_RX_BUF_1 = 0x0E
 
 
 class HandleUART:

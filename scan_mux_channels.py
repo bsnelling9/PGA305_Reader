@@ -61,7 +61,6 @@ class ScanMuxChannels:
         }
 
         try:
-            # read_sensor_data handles set_channel and enter_command_mode internally
             sensor = self.reader.read_sensor_data(channel, verbose=False)
 
             if sensor is None:
@@ -71,19 +70,15 @@ class ScanMuxChannels:
             result['part_number']   = sensor['part_number']
             result['serial_number'] = f"{sensor['serial_number']:06d}"
 
-            # read_sensor_data disconnects channel at end
-            # reconnect for TADC/PADC reads
             self.reader.set_channel(channel)
             if not self.reader.enter_command_mode():
                 result['status'] = 'CM_FAIL_ADC'
                 return result
 
-            # Read TADC — 0x24 LSB, 0x25 MID, 0x26 MSB
             tadc_lsb = self.reader.read_register(0x24, config.I2C_CONTROL)
             tadc_mid = self.reader.read_register(0x25, config.I2C_CONTROL)
             tadc_msb = self.reader.read_register(0x26, config.I2C_CONTROL)
 
-            # Read PADC — 0x20 LSB, 0x21 MID, 0x22 MSB
             padc_lsb = self.reader.read_register(0x20, config.I2C_CONTROL)
             padc_mid = self.reader.read_register(0x21, config.I2C_CONTROL)
             padc_msb = self.reader.read_register(0x22, config.I2C_CONTROL)
@@ -139,5 +134,5 @@ class ScanMuxChannels:
                     'Status':        r['status'],
                 })
 
-        print(f"\n✅ Results saved to: {filename}")
+        print(f"\nResults saved to: {filename}")
         print(f"   Total rows: {len(self.results)}")

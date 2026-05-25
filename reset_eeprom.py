@@ -3,6 +3,7 @@ from pga305_reader import PGA305Reader
 from eeprom_defaults import EEPROM_DEFAULTS
 from eeprom_addresses import *
 from helpers.calculate_crc import calculate_crc # type: ignore
+import time
 
 EEPROM_PAGE_SIZE = 8
 PAGE_F_NUMBER    = 0x0F
@@ -65,7 +66,7 @@ class ResetEEPROM:
                 print("WARNING: PN/SN/PRANGE changed — this should not have happened!")
                 self._print_preserved(preserved_after)
             else:
-                print("  PN/SN/PRANGE unchanged. ✓")
+                print("  PN/SN/PRANGE unchanged.")
 
             print("\nStep 4: Retriggering CRC...")
             if not calculate_crc(self.reader):
@@ -73,8 +74,6 @@ class ResetEEPROM:
                 return
 
             print("\n" + "=" * 70)
-            print("  RESET COMPLETE — Power cycle the board to reload from EEPROM.")
-            print("=" * 70)
 
         except Exception as e:
             print(f"\nERROR: {e}")
@@ -100,10 +99,11 @@ class ResetEEPROM:
 
     def _build_page_data(self, page):
         page_start = page * EEPROM_PAGE_SIZE
+        
         return [EEPROM_DEFAULTS.get(page_start + i, 0x00) for i in range(EEPROM_PAGE_SIZE)]
 
     def _program_page(self, page, page_data):
-        import time
+
         page_start = page * EEPROM_PAGE_SIZE
 
         if not self.reader.write_register(EEPROM_PAGE_ADDR_REG, page, config.EEPROM_ADDR):
@@ -122,6 +122,7 @@ class ResetEEPROM:
         for _ in range(20):
             time.sleep(0.1)
             status = self.reader.read_register(EEPROM_STATUS_REG, config.EEPROM_ADDR)
+            
             if status is not None and (status & 0x06) == 0:
                 break
         else:
@@ -130,7 +131,7 @@ class ResetEEPROM:
 
         all_ok = True
         for i, expected in enumerate(page_data):
-            addr     = page_start + i
+            addr = page_start + i
             readback = self.reader.read_register(addr, config.EEPROM_ADDR)
             if readback != expected:
                 name = EEPROM_REGISTERS.get(addr, f"0x{addr:02X}")
@@ -141,8 +142,11 @@ class ResetEEPROM:
 
     def _reset_page(self, page):
         page_start = page * EEPROM_PAGE_SIZE
+        
         print(f"  Page 0x{page:02X} (0x{page_start:02X}-0x{page_start+7:02X})...", end=" ", flush=True)
+        
         page_data = self._build_page_data(page)
+        
         ok = self._program_page(page, page_data)
         
         print("OK" if ok else "FAILED")

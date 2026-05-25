@@ -73,6 +73,7 @@ def read_dac_passive(reader):
 
     print("\nReading ADC values...")
     calculate_dac_output(reader)
+    
     while True:
         user_input = input("\nEnter r to read data of x to exit: ").strip().lower()
 

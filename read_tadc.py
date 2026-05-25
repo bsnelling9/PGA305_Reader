@@ -4,8 +4,6 @@ from pga305_reader import PGA305Reader
 
 class ReadTADC:
 
-    I2C_ADDR = 0x22  # Control and Status registers
-
     def __init__(self, channel=1):
         self.channel = channel
         self.reader = PGA305Reader()
@@ -58,9 +56,9 @@ class ReadTADC:
             self.reader.disconnect()
 
     def _read_tadc(self):
-        lsb = self.reader.read_register(0x24, self.I2C_ADDR)
-        mid = self.reader.read_register(0x25, self.I2C_ADDR)
-        msb = self.reader.read_register(0x26, self.I2C_ADDR)
+        lsb = self.reader.read_register(0x24, config.I2C_CONTROL)
+        mid = self.reader.read_register(0x25, config.I2C_CONTROL)
+        msb = self.reader.read_register(0x26, config.I2C_CONTROL)
 
         if None in [lsb, mid, msb]:
             return None

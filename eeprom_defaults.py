@@ -21,7 +21,7 @@ EEPROM_DEFAULTS = {
     # PAGE 8
     0x42: 0xFF,  # HIGH_CLAMP_LSB
     0x43: 0x3F,  # HIGH_CLAMP_MSB
-    0x44: 0x01,  # PADC_GAIN_LSB  ← add this
+    0x44: 0x01,  # PADC_GAIN_LSB 
 
     # PAGE B
     0x58: 0x07,
