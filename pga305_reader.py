@@ -4,7 +4,7 @@ import csv
 import os
 import config
 from typing import Optional, Dict
-
+from eeprom_addresses import *
 
 class PGA305Reader:
 
@@ -42,6 +42,7 @@ class PGA305Reader:
             self.inst = None
 
     def write_then_read_sequential(self, write_reg: int, write_val: int, i2c_addr: int, read_reg: int, read_count: int) -> Optional[list]:
+        
         write_cmd = f"imw{i2c_addr:02X}{write_reg:02X}{write_val:02X}"
         read_cmds = [f"imr{i2c_addr:02X}{read_reg + i:02X}" for i in range(read_count)]
         full_cmd = "\\".join([write_cmd] + read_cmds)
@@ -133,7 +134,6 @@ class PGA305Reader:
         return response.decode('ascii', errors='ignore').strip()
 
     def read_dig_if_ctrl(self) -> Optional[int]:
-        # I2C address for page 0x2 = 0x40 + 0x02 = 0x42
         value = self.read_register(0x06, config.I2C_CONTROL)
         if value is not None:
             print(f"DIG_IF_CTRL (0x22/0x06) = 0x{value:02X} ({value:08b})")
@@ -194,27 +194,18 @@ class PGA305Reader:
         print(f"COMPENSATION_CONTROL (0x20/0x0C): 0x{comp_ctrl:02X}")
         print(f"  IF_SEL      (bit 1): {(comp_ctrl >> 1) & 1}")
         print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
-               
-
+             
         self.read_dig_if_ctrl()
 
         owi_int_check = self.read_register(0x0B, config.I2C_CONTROL)
         print(f"OWI_INTERRUPT_EN (0x22/0x0B) = 0x{owi_int_check:02X} — OWI_INT_EN: {owi_int_check & 1}")
 
         dlpwr_check = self.read_register(0x54, config.I2C_CONTROL)
-        print(f"DLPWR            (0x22/0x54) = 0x{dlpwr_check:02X} — OWI_CLK_EN: {dlpwr_check & 1}")
-
-        if self.register_map:
-            pn_addrs = [self.register_map.get(f'EEPROM_ARRAY PN_{s}', d)
-                        for s, d in [('LSB', 0x70), ('MID', 0x71), ('MSB', 0x72)]]
-            sn_addrs = [self.register_map.get(f'EEPROM_ARRAY SN_{s}', d)
-                        for s, d in [('LSB', 0x73), ('MID', 0x74), ('MSB', 0x75)]]
-            pr_addrs = [self.register_map.get(f'EEPROM_ARRAY PRANGE_{s}', d)
-                        for s, d in [('LSB', 0x76), ('MSB', 0x77)]]
-        else:
-            pn_addrs = [0x70, 0x71, 0x72]
-            sn_addrs = [0x73, 0x74, 0x75]
-            pr_addrs = [0x76, 0x77]
+        print(f"DLPWR (0x22/0x54) = 0x{dlpwr_check:02X} — OWI_CLK_EN: {dlpwr_check & 1}")
+        
+        pn_addrs = EEPROM_ID_MAP["PN"]
+        sn_addrs = EEPROM_ID_MAP["SN"]
+        pr_addrs = EEPROM_ID_MAP["PRange"]
 
         pn_bytes = [self.read_register(a, config.EEPROM_ADDR) for a in pn_addrs]
         if None in pn_bytes:
@@ -254,7 +245,7 @@ class PGA305Reader:
             'prange': prange
         }
 
-
+    #Eventually remove this and use eeprom_addresses.py
     def _load_register_map(self, csv_path: str) -> bool:
         if not os.path.exists(csv_path):
             return False

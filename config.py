@@ -18,7 +18,7 @@ P_NORM = 4194304
 # - 0x22: Control and Status registers
 # - 0x25: EEPROM registers (Part Number, Serial Number, PRange)
 PGA305_I2C_ADDR = 0x20
-I2C_CONTROL   = 0x22 
+I2C_CONTROL = 0x22 
 EEPROM_ADDR = 0x25  
 
 CM_COMMAND_DELAY = 2.5      # Delay after cm_ command (seconds) - STM32 needs 2+ seconds
@@ -29,5 +29,5 @@ CHANNEL_SWITCH_DELAY = 0.5  # Delay after changing multiplexer channel (seconds)
 CM_MAX_RETRIES = 5 
 
 # Scan channels configuration
-SCAN_NUM_CHANNELS  = 1   # Number of channels to scan (0 to N-1)
-SCAN_ITERATIONS    = 2  # Number of times to repeat the full scan
+SCAN_NUM_CHANNELS = 1   # Number of channels to scan (0 to N-1)
+SCAN_ITERATIONS = 2  # Number of times to repeat the full scan

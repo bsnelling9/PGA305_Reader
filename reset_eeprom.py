@@ -26,9 +26,8 @@ class ResetEEPROM:
         print(f"  Channel : {self.channel}")
         print("\n  This will reset ALL calibration coefficients to zero.")
         print("  PN, SN, and PRANGE will be preserved.")
-        print("  Analog config registers will be restored to power-on defaults.")
 
-        confirm = input("\n  Are you sure? Type YES to proceed: ").strip()
+        confirm = input("\n Type YES to proceed: ").strip()
         if confirm != "YES":
             print("  Cancelled.")
             return
@@ -119,13 +118,16 @@ class ResetEEPROM:
             print(f"  ERROR: Could not trigger program for page 0x{page:02X}")
             return False
 
+        time_out = False
         for _ in range(20):
             time.sleep(0.1)
             status = self.reader.read_register(EEPROM_STATUS_REG, config.EEPROM_ADDR)
             
             if status is not None and (status & 0x06) == 0:
+                time_out = True
                 break
-        else:
+
+        if not time_out:
             print(f"  WARNING: Page 0x{page:02X} program timed out")
             return False
 
@@ -133,6 +135,7 @@ class ResetEEPROM:
         for i, expected in enumerate(page_data):
             addr = page_start + i
             readback = self.reader.read_register(addr, config.EEPROM_ADDR)
+            
             if readback != expected:
                 name = EEPROM_REGISTERS.get(addr, f"0x{addr:02X}")
                 print(f"  MISMATCH: 0x{addr:02X} {name:<20} expected 0x{expected:02X} got 0x{readback:02X}")

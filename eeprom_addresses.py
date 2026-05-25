@@ -140,6 +140,7 @@ EEPROM_REGISTERS = {
     0x6F: "ADD_0x6F",
 
     # PAGE E — Part Number / Serial / Pressure Range (0x70–0x77)
+    # Only used for full EEPROM read
     0x70: "PN_LSB",
     0x71: "PN_MID",
     0x72: "PN_MSB",
@@ -179,6 +180,13 @@ EEPROM_REGISTERS = {
     0x8C: "EEPROM_CRC_STATUS",    # Bits: CRC_GOOD, CRC_CHECK_IN_PROGRESS
     0x8D: "EEPROM_CRC_VALUE",     # Calculated CRC result
 }
+
+EEPROM_ID_MAP = {
+    "PN":     [0x70, 0x71, 0x72],
+    "SN":     [0x73, 0x74, 0x75],
+    "PRANGE": [0x76, 0x77],
+}
+
 
 EEPROM_CACHE = {
     0x80: "EEPROM_CACHE_LO1",
