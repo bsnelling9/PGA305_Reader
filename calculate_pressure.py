@@ -1,7 +1,5 @@
 import config
 from pga305_reader import PGA305Reader
-#T_NORM = 4194304
-#P_NORM = 4194304
 
 def labview_padc(lsb, mid, msb):
     multiplier = -1 if (msb // 128) > 0 else 1

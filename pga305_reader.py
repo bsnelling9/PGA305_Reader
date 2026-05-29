@@ -174,7 +174,6 @@ class PGA305Reader:
 
         return False
 
-
     def read_sensor_data(self, channel: int, verbose=True) -> Optional[Dict]:
         if verbose:
             print(f"\nReading channel {channel}...")
