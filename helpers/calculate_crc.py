@@ -1,3 +1,4 @@
+import time
 import config
 
 EEPROM_PAGE_SIZE = 8
@@ -11,12 +12,9 @@ def calculate_crc(reader):
         print("  ERROR: failed to recalculate CRC")
         return False
 
-    crc_value = None
-    for _ in range(50):
-        val = reader.read_register(0x8D, config.EEPROM_ADDR)
-        if val is not None and val != 0x00:
-            crc_value = val
-            break
+    time.sleep(0.5)
+
+    crc_value = reader.read_register(0x8D, config.EEPROM_ADDR)
 
     if crc_value is None:
         print("  ERROR: CRC calculation timed out")

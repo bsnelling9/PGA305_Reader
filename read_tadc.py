@@ -1,7 +1,7 @@
 import config
 from pga305_reader import PGA305Reader
 
-
+## this will be removed as its in another function
 class ReadTADC:
 
     def __init__(self, channel=1):

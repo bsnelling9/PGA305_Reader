@@ -1,7 +1,6 @@
 import time
 from pga305_reader import PGA305Reader
 
-
 def run_gpio_diagnostic(): 
     print("\n" + "="*70)
     print("GPIO DIAGNOSTIC TEST - MANUAL MODE")
@@ -21,16 +20,13 @@ def run_gpio_diagnostic():
         reader.connect()
         print("Connected")
         
-        # Start the test - set all pins to 0x00
         print("\n" + "="*70)
         print("STEP 1: Pattern 0x00 - ALL PINS LOW")
         print("="*70)
         print("Sending command: gpio_start")
         
         reader.inst.write_raw(b'gpio_start\n')
-        time.sleep(0.2)
         
-        # Check response
         if reader.inst.bytes_in_buffer > 0:
             
             response = reader.inst.read_bytes(reader.inst.bytes_in_buffer)
@@ -54,17 +50,15 @@ def run_gpio_diagnostic():
         print("\nExpected voltage levels:")
         print("  • ALL pins (SEL0-SEL7) should be ~0.0V")
         input("Press Enter to continue...")
-        
-        # Pattern 2: 0xFF
+
         print("\n" + "="*70)
         print("STEP 2: Pattern 0xFF - ALL PINS HIGH")
         print("="*70)
         print("Sending command: gpio_next")
         
         reader.inst.write_raw(b'gpio_next\n')
-        time.sleep(0.2)
+
         
-        # Check response
         if reader.inst.bytes_in_buffer > 0:
             response = reader.inst.read_bytes(reader.inst.bytes_in_buffer)
             print(f"Response: {response}")
@@ -78,16 +72,13 @@ def run_gpio_diagnostic():
         print("If not the pin is damaged")
         input("Press Enter to continue to next pattern...")
         
-        # Pattern 3: 0x03
         print("\n" + "="*70)
         print("STEP 3: Pattern 0x03 - ONLY SEL0 & SEL1 HIGH")
         print("="*70)
         print("Sending command: gpio_next")
         
         reader.inst.write_raw(b'gpio_next\n')
-        time.sleep(0.2)
         
-        # Check response
         if reader.inst.bytes_in_buffer > 0:
             response = reader.inst.read_bytes(reader.inst.bytes_in_buffer)
             print(f"Response: {response}")
@@ -98,17 +89,14 @@ def run_gpio_diagnostic():
         print("\nIf testing PA5, PA6, PA7, or PB4 (SEL4-7):")
         print(" The pin should DROP to ~0.0V")
         input("Press Enter to finish test...")
-        
-        # Reset to 0x00
+
         print("\n" + "="*70)
         print("STEP 4: Pattern 0x00 - ALL PINS LOW (Reset)")
         print("="*70)
         print("Sending command: gpio_next")
         
         reader.inst.write_raw(b'gpio_next\n')
-        time.sleep(0.2)
         
-        # Check response
         if reader.inst.bytes_in_buffer > 0:
             response = reader.inst.read_bytes(reader.inst.bytes_in_buffer)
             print(f"Response: {response}")

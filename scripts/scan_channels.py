@@ -9,7 +9,6 @@ print("="*70)
 print("SCANNING ALL CHANNELS FOR PROGRAMMED PGA305 SENSORS")
 print("="*70)
 
-# Initialize reader (loads config automatically)
 reader = PGA305Reader()
 reader.connect()
 
@@ -17,7 +16,6 @@ for channel in range(8):
     print(f"\n--- Channel {channel} ---")
     
     try:
-        # Read sensor data using the class
         data = reader.read_sensor_data(channel)
         
         if data:
@@ -26,11 +24,10 @@ for channel in range(8):
             if data['prange'] is not None:
                 print(f"  PRange:        {data['prange']}")
             
-            # Check if programmed
             if data['serial_number'] != 0 or data['part_number'] not in ['A0', 'S0']:
-                print(f"  ✓ PROGRAMMED SENSOR FOUND!")
+                print(f"PROGRAMMED SENSOR FOUND!")
             else:
-                print(f"  (blank/unprogrammed)")
+                print(f"(blank/unprogrammed)")
         else:
             print("  No response")
     

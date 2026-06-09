@@ -31,7 +31,7 @@ CAL_COEFFICIENTS = {
     "M3_LSB": 0x2D, "M3_MID": 0x2E, "M3_MSB": 0x2F,
 }
 
-# Supporting calibration registers - these MUST match the coefficient calculation
+
 SUPPORT_REGISTERS = {
     # Digital gain/offset applied to ADC data before polynomial (Pages 8-9, B-C)
     "PADC_GAIN_LSB":    0x44, "PADC_GAIN_MID":    0x45, "PADC_GAIN_MSB":    0x46,
@@ -43,7 +43,7 @@ SUPPORT_REGISTERS = {
     "OFFSET_ENABLE":     0x69,
 }
 
-# AFE hardware configuration (Page 6)
+
 AFE_REGISTERS = {
     "P_GAIN_SELECT":  0x35,
     "T_GAIN_SELECT":  0x36,
@@ -54,7 +54,6 @@ AFE_REGISTERS = {
     "TEMP_CTRL":      0x37,
 }
 
-# DAC output range (Page 7)
 RANGE_REGISTERS = {
     "NORMAL_LOW_LSB":  0x3C, "NORMAL_LOW_MSB":  0x3D,
     "NORMAL_HIGH_LSB": 0x3E, "NORMAL_HIGH_MSB": 0x3F,
@@ -62,7 +61,7 @@ RANGE_REGISTERS = {
     "HIGH_CLAMP_LSB":  0x42, "HIGH_CLAMP_MSB":  0x43,
 }
 
-# DAC linearization (Pages 9-A)
+
 DAC_LIN_REGISTERS = {
     "A0_LSB": 0x4A, "A0_MSB": 0x4B,
     "A1_LSB": 0x4C, "A1_MSB": 0x4D,
@@ -72,14 +71,14 @@ DAC_LIN_REGISTERS = {
     "B2_LSB": 0x54, "B2_MSB": 0x55,
 }
 
-# Sensor identity (Page E)
+
 IDENTITY_REGISTERS = {
     "PN_LSB": 0x70, "PN_MID": 0x71, "PN_MSB": 0x72,
     "SN_LSB": 0x73, "SN_MID": 0x74, "SN_MSB": 0x75,
     "PRANGE_LSB": 0x76, "PRANGE_MSB": 0x77,
 }
 
-# PGA305 pressure gain lookup (P_GAIN_SELECT[4:0] -> gain value)
+
 P_GAIN_TABLE = {
     0: 2.67, 1: 3, 2: 3.2, 3: 3.56, 4: 4, 5: 4.5, 6: 5.33, 7: 6,
     8: 6.4, 9: 7.11, 10: 8, 11: 10, 12: 12, 13: 13.33, 14: 16, 15: 20,
@@ -87,10 +86,10 @@ P_GAIN_TABLE = {
     24: 120, 25: 133, 26: 160, 27: 200, 28: 240, 29: 266, 30: 320, 31: 400,
 }
 
-# PGA305 temperature gain lookup (T_GAIN_SELECT[1:0] -> gain value)
+
 T_GAIN_TABLE = {0: 5, 1: 10, 2: 20, 3: 40}
 
-# Bridge voltage lookup (VBRDG_CTRL[1:0])
+
 VBRDG_TABLE = {0: "1.0V", 1: "1.5V", 2: "2.0V", 3: "2.5V"}
 
 # DAC gain lookup (DAC_GAIN[2:0])
@@ -101,14 +100,14 @@ DAC_GAIN_TABLE = {
 
 
 def combine_24bit(lsb, mid, msb):
-    """Combine 3 bytes into a 24-bit unsigned value"""
+  
     if lsb is None or mid is None or msb is None:
         return None
     return lsb + (mid << 8) + (msb << 16)
 
 
 def to_signed_24bit(value):
-    """Convert unsigned 24-bit to signed"""
+    
     if value is None:
         return None
     if value >= 0x800000:
@@ -124,7 +123,6 @@ def combine_16bit(lsb, msb):
 
 
 def read_register_block(reader, register_map):
-    """Read a block of registers and return raw values dict"""
     raw = {}
     for name, addr in register_map.items():
         raw[name] = reader.read_register(addr, config.EEPROM_ADDR)
@@ -132,27 +130,6 @@ def read_register_block(reader, register_map):
 
 
 def verify_calibration(reader, channel, verbose=True):
-    """
-    Read and verify all calibration-related data from a PGA305 sensor.
-
-    Reads:
-      - 16 polynomial coefficients (H0-H3, G0-G3, N0-N3, M0-M3)
-      - Supporting registers (PADC/TADC gain/offset, OFF_EN, ADC mode)
-      - AFE hardware config (analog gains, bridge voltage, DAC settings)
-      - DAC linearization coefficients
-      - Sensor identity (PN, SN, PRange)
-
-    Performs consistency checks to verify the calibration is complete
-    and all registers are set correctly as a matched set.
-
-    Args:
-        reader: PGA305Reader instance (already connected)
-        channel: Multiplexer channel (0-7)
-        verbose: Print detailed output
-
-    Returns:
-        dict with all calibration data, or None if communication failed
-    """
     if verbose:
         print(f"\nReading calibration data from channel {channel}...")
 
@@ -161,23 +138,19 @@ def verify_calibration(reader, channel, verbose=True):
 
     if not reader.enter_command_mode():
         if verbose:
-            print("✗ ERROR: Could not enter command mode")
+            print("ERROR: Could not enter command mode")
             print("  Try power cycling the board")
         return None
 
     if verbose:
-        print("✓ Command mode active")
+        print("Command mode active")
 
-    # =========================================================================
-    # 1. Read sensor identity (Page E)
-    # =========================================================================
     id_raw = read_register_block(reader, IDENTITY_REGISTERS)
 
     pn_val = combine_24bit(id_raw.get("PN_LSB"), id_raw.get("PN_MID"), id_raw.get("PN_MSB"))
     sn_val = combine_24bit(id_raw.get("SN_LSB"), id_raw.get("SN_MID"), id_raw.get("SN_MSB"))
     prange_val = combine_16bit(id_raw.get("PRANGE_LSB"), id_raw.get("PRANGE_MSB"))
 
-    # Decode part number
     part_number = None
     serial_number = None
     if pn_val is not None:
@@ -198,9 +171,6 @@ def verify_calibration(reader, channel, verbose=True):
         if prange_val is not None:
             print(f"  PRange:        {prange_val}")
 
-    # =========================================================================
-    # 2. Read all 16 calibration coefficients (Pages 0-5)
-    # =========================================================================
     cal_raw = read_register_block(reader, CAL_COEFFICIENTS)
 
     coeff_names = ["H0", "H1", "H2", "H3", "G0", "G1", "G2", "G3",
@@ -231,9 +201,6 @@ def verify_calibration(reader, channel, verbose=True):
                 else:
                     print(f"    {name}: READ ERROR")
 
-    # =========================================================================
-    # 3. Read supporting calibration registers
-    # =========================================================================
     support_raw = read_register_block(reader, SUPPORT_REGISTERS)
 
     padc_gain = combine_24bit(
@@ -256,7 +223,6 @@ def verify_calibration(reader, channel, verbose=True):
     adc_24bit_en = support_raw.get("ADC_24BIT_ENABLE")
     offset_enable = support_raw.get("OFFSET_ENABLE")
 
-    # Convert gain/offset to signed where needed
     padc_offset_signed = to_signed_24bit(padc_offset) if padc_offset is not None else None
     tadc_offset_signed = to_signed_24bit(tadc_offset) if tadc_offset is not None else None
     padc_gain_signed = to_signed_24bit(padc_gain) if padc_gain is not None else None
@@ -293,9 +259,6 @@ def verify_calibration(reader, channel, verbose=True):
             off_en = "offset before gain" if (offset_enable & 0x01) else "gain before offset"
             print(f"    OFFSET_EN:    {offset_enable} ({off_en})")
 
-    # =========================================================================
-    # 4. Read AFE hardware configuration (Page 6)
-    # =========================================================================
     afe_raw = read_register_block(reader, AFE_REGISTERS)
 
     if verbose:
@@ -342,9 +305,6 @@ def verify_calibration(reader, channel, verbose=True):
             ratio = bool(dac_cfg_raw & 0x01)
             print(f"    Ratiometric:  {'Enabled' if ratio else 'Disabled'}")
 
-    # =========================================================================
-    # 5. Read DAC output range and linearization
-    # =========================================================================
     range_raw = read_register_block(reader, RANGE_REGISTERS)
     dac_lin_raw = read_register_block(reader, DAC_LIN_REGISTERS)
 
@@ -382,21 +342,15 @@ def verify_calibration(reader, channel, verbose=True):
         else:
             print("\n    DAC Linearization: Not programmed (all zero)")
 
-    # =========================================================================
-    # 6. Analysis and Consistency Checks
-    # =========================================================================
     if verbose:
         print(f"\n{'='*70}")
         print("CALIBRATION ANALYSIS")
         print(f"{'='*70}")
 
-    # Determine which coefficients are non-zero
     non_zero_cal = {k: v for k, v in coefficients.items()
                     if v is not None and v != 0}
     has_coefficients = len(non_zero_cal) > 0
 
-    # Determine calibration type from coefficient pattern
-    # Temperature order: count how many temp levels have non-zero coefficients
     temp_points = 0
     for i in range(4):
         has_at_level = any(
@@ -406,7 +360,6 @@ def verify_calibration(reader, channel, verbose=True):
         if has_at_level:
             temp_points = i + 1
 
-    # Pressure order: count which families are used
     pressure_points = 0
     for j, fam in enumerate(["H", "G", "N", "M"]):
         has_in_family = any(
@@ -416,7 +369,6 @@ def verify_calibration(reader, channel, verbose=True):
         if has_in_family:
             pressure_points = j + 1
 
-    # Determine normalization factor based on ADC mode
     is_24bit = (adc_24bit_en is not None) and (adc_24bit_en & 0x01)
     norm_factor = NORM_FACTOR_24BIT if is_24bit else NORM_FACTOR_16BIT
 
@@ -428,27 +380,23 @@ def verify_calibration(reader, channel, verbose=True):
         info.append(f"Calibration type: {cal_type}")
 
         if verbose:
-            print(f"\n  ✓ Calibration coefficients detected ({cal_type})")
+            print(f"\n Calibration coefficients detected ({cal_type})")
             print(f"\n  Non-zero coefficients (normalized = EEPROM / {norm_factor}):")
             for name, val in non_zero_cal.items():
                 signed = to_signed_24bit(val)
                 normalized = signed / norm_factor
                 print(f"    {name}: 0x{val:06X} ({signed:+d})  ->  {normalized:+.6f}")
 
-        # --- Consistency Checks ---
         if verbose:
             print(f"\n  {'_'*60}")
             print(f"  CONSISTENCY CHECKS")
             print(f"  {'_'*60}")
 
-        # Check 1: PADC/TADC gain should not be zero if coefficients are present
         if padc_gain is not None and padc_gain == 0:
             warnings.append("PADC_GAIN is 0 - pressure data will be zeroed out")
         if tadc_gain is not None and tadc_gain == 0 and temp_points > 1:
             warnings.append("TADC_GAIN is 0 but temperature coefficients are present")
 
-        # Check 2: If gain is 1 and offset is 0, that's the default (no digital scaling)
-        # This is valid for simple calibrations but worth noting
         padc_defaults = (padc_gain in [1, None]) and (padc_offset in [0, None])
         tadc_defaults = (tadc_gain in [1, None]) and (tadc_offset in [0, None])
 
@@ -460,30 +408,27 @@ def verify_calibration(reader, channel, verbose=True):
                 print(f"     calculator recommended gain=1 and offset=0.")
         else:
             if verbose:
-                print(f"  ✓  Digital scaling is configured:")
+                print(f"  Digital scaling is configured:")
                 if not padc_defaults:
                     print(f"     PADC: gain={padc_gain_signed}, offset={padc_offset_signed}")
                 if not tadc_defaults:
                     print(f"     TADC: gain={tadc_gain_signed}, offset={tadc_offset_signed}")
 
-        # Check 3: ADC mode should be set
         if adc_24bit_en is not None:
             if verbose:
                 mode = "24-bit" if is_24bit else "16-bit"
-                print(f"  ✓  ADC mode: {mode}")
+                print(f"   ADC mode: {mode}")
         else:
             warnings.append("Could not read ADC_24BIT_ENABLE register")
 
-        # Check 4: OFF_EN consistency
         if offset_enable is not None:
             off_en_set = bool(offset_enable & 0x01)
             if verbose:
                 order = "offset then gain" if off_en_set else "gain then offset"
-                print(f"  ✓  OFF_EN={int(off_en_set)} ({order})")
+                print(f"OFF_EN={int(off_en_set)} ({order})")
         else:
             warnings.append("Could not read OFFSET_ENABLE register")
 
-        # Check 5: DAC should be enabled
         dac_en = afe_raw.get("DAC_CTRL_STATUS")
         if dac_en is not None and not (dac_en & 0x01):
             warnings.append("DAC is DISABLED - sensor will not produce output")
@@ -491,7 +436,6 @@ def verify_calibration(reader, channel, verbose=True):
             if verbose:
                 print(f"  DAC is enabled")
 
-        # Check 6: Bridge should be enabled
         brdg = afe_raw.get("BRDG_CTRL")
         if brdg is not None and not (brdg & 0x01):
             warnings.append("Bridge excitation is DISABLED - sensor cannot measure pressure")
@@ -499,18 +443,16 @@ def verify_calibration(reader, channel, verbose=True):
             if verbose:
                 print(f" Bridge excitation is enabled")
 
-        # Check 7: NORMAL_HIGH should be set (typically 0x3FFF for 14-bit DAC)
         if normal_high is not None:
             if normal_high == 0x3FFF:
                 if verbose:
-                    print(f"  ✓  NORMAL_HIGH=0x3FFF (14-bit full-scale)")
+                    print(f"  NORMAL_HIGH=0x3FFF (14-bit full-scale)")
             elif normal_high == 0:
                 warnings.append("NORMAL_HIGH is 0 - DAC output range may be wrong")
             else:
                 if verbose:
                     print(f"  i  NORMAL_HIGH=0x{normal_high:04X} (custom range)")
 
-        # Check 8: All-0xFF check (erased EEPROM)
         all_ff = all(
             coefficients.get(name) == 0xFFFFFF
             for name in coeff_names
@@ -519,7 +461,6 @@ def verify_calibration(reader, channel, verbose=True):
         if all_ff:
             warnings.append("All coefficients are 0xFFFFFF - EEPROM may be erased/blank")
 
-        # Print warnings
         if warnings:
             if verbose:
                 print(f"\n  {'_'*60}")
@@ -528,10 +469,10 @@ def verify_calibration(reader, channel, verbose=True):
                     print(f"    ! {w}")
         else:
             if verbose:
-                print(f"\n  ✓  All consistency checks passed")
+                print(f"\n  All consistency checks passed")
 
     else:
-        # No coefficients found
+
         if verbose:
             print("\n  ! ALL calibration coefficients are ZERO")
             print("    This sensor does NOT appear to be calibrated.")
@@ -541,9 +482,6 @@ def verify_calibration(reader, channel, verbose=True):
             print("      2. Use '06_-_Set_Cal_Coefficients.vi' to program coefficients")
             print("      3. Verify calibration data files exist for this part number")
 
-    # =========================================================================
-    # Build and return result dict
-    # =========================================================================
     result = {
         'part_number': part_number,
         'serial_number': serial_number,
@@ -568,9 +506,7 @@ def verify_calibration(reader, channel, verbose=True):
 
 
 def run_calibration_verification():
-    """
-    Main function for running calibration verification from the menu.
-    """
+
     print("\n" + "=" * 70)
     print("           PGA305 CALIBRATION VERIFICATION")
     print("=" * 70)
@@ -578,7 +514,6 @@ def run_calibration_verification():
     print("and verifies that the calibration data is complete and consistent.")
     print()
 
-    # Get channel from user
     channel_input = input(f"Enter channel number (0-7) [default: {config.CHANNEL}]: ").strip()
     channel = int(channel_input) if channel_input else config.CHANNEL
 
@@ -586,7 +521,6 @@ def run_calibration_verification():
         print("ERROR: Channel must be between 0 and 7")
         return
 
-    # Initialize reader
     reader = PGA305Reader()
 
     try:
@@ -603,7 +537,7 @@ def run_calibration_verification():
         result = verify_calibration(reader, channel, verbose=True)
 
         if result is None:
-            print("\n✗ ERROR: Failed to read calibration data")
+            print("\nERROR: Failed to read calibration data")
         else:
             print(f"\n{'='*70}")
             print("RESULT")
@@ -613,16 +547,16 @@ def run_calibration_verification():
                 print(f"  Sensor:      {result['part_number']} (SN: {result['serial_number']})")
 
             if result['is_calibrated']:
-                print(f"  Status:      ✓ CALIBRATED ({result['cal_type']})")
+                print(f"  Status:CALIBRATED ({result['cal_type']})")
             else:
-                print(f"  Status:      ! NOT CALIBRATED")
+                print(f"  Status: NOT CALIBRATED")
 
             if result['warnings']:
                 print(f"  Warnings:    {len(result['warnings'])}")
                 for w in result['warnings']:
                     print(f"               ! {w}")
             elif result['is_calibrated']:
-                print(f"  Consistency: ✓ All checks passed")
+                print(f"  Consistency: All checks passed")
 
             print(f"{'='*70}")
 
