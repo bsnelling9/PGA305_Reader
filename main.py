@@ -261,7 +261,7 @@ def main():
         elif choice == '16':
             CalibrationWriter().run()
         elif choice == '17':
-            CalibrationWriter().run_zero_coefficients()
+            CalibrationWriter().clear_calibration()
         elif choice == 'a':
             calculate_crc()
         elif choice == 'b':

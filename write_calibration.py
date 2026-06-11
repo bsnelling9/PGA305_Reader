@@ -17,7 +17,7 @@ class CalibrationWriter:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.DUT_BASE_DIR = os.path.abspath(os.path.join(current_dir, "..", "Calibration_data"))
 
-    def run_zero_coefficients(self):
+    def clear_calibration(self):
         try:
             print(f"\nConnecting to sensor on Channel {COEFFICIENT_CHANNEL}...")
             self.reader.connect()
@@ -28,18 +28,17 @@ class CalibrationWriter:
                 return
 
             updates = {}
-            for key, reg_addrs in COEFFICIENTS_MAP.items():
+
+            for reg_addrs in COEFFICIENTS_MAP.values():
                 for addr in reg_addrs:
                     updates[addr] = 0x00
 
-            # Set TADC_GAIN and PADC_GAIN to 1
             for i, addr in enumerate(COEFFICIENTS_MAP['TADC_GAIN']):
                 updates[addr] = (1 >> (8 * i)) & 0xFF
             for i, addr in enumerate(COEFFICIENTS_MAP['PADC_GAIN']):
                 updates[addr] = (1 >> (8 * i)) & 0xFF
 
-            print("Zeroing all coefficients, setting TADC_GAIN=1, PADC_GAIN=1...")
-            print(updates)
+            print("Clearing all calibration settings and coefficients...")
             if self.process_flash_routine(updates):
                 calculate_crc(self.reader)
                 print("\nDone. Cycle board power.")
@@ -162,9 +161,9 @@ class CalibrationWriter:
 
             print("Command Mode active. Executing write routines...")
             if self.process_flash_routine(target_updates):
-                print("\nCalculating and validating new checksum value...")
+                print("\nCalculating CRC")
                 calculate_crc(self.reader)
-                print("\nCalibration successfully deployed. Cycle board power.")
+                print("\nCoefficients and Settings written to EEPROM")
 
         except Exception as e:
             print(f"\nCRITICAL SCRIPT FAULT: {e}")

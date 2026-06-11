@@ -4,7 +4,7 @@ import config
 from pga305_reader import PGA305Reader
 from eeprom_addresses import EEPROM_REGISTERS
 
-# Coefficient names — order matches DUT file
+
 COEFF_NAMES = ['h0','h1','h2','h3','g0','g1','g2','g3',
                'n0','n1','n2','n3','m0','m1','m2','m3']
 
@@ -21,17 +21,9 @@ def _build_coeff_map() -> dict:
             result[name] = (addr_by_label[lsb], addr_by_label[mid], addr_by_label[msb])
     return result
 
-
 COEFFICIENTS = _build_coeff_map()
 
-
 class VerifyCoefficients:
-    """
-    Uses PGA305Reader to read the sensor serial number and part number,
-    locates the matching DUT file in DUTs/<part_number>/<serial_number>.txt,
-    then compares every coefficient against the EEPROM.
-    Addresses sourced from eeprom_addresses.py.
-    """
 
     DUT_BASE_DIR = "DUTs"
 

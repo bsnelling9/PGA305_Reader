@@ -140,7 +140,7 @@ class WriteEEPROM:
 
             page_data[addr - page_start] = val
 
-            if input("\n  Confirm write and program? (yes/no): ").strip().lower() != 'yes':
+            if input("\n  Confirm write to EEPROM? (yes/no): ").strip().lower() != 'yes':
                 print("  Cancelled.")
                 return
 
@@ -161,7 +161,7 @@ class WriteEEPROM:
                 print(f"    0x{a:02X}  {n:<30}  expected 0x{expected:02X}  got 0x{readback:02X}  {'OK' if ok else 'MISMATCH'}")
 
             if not all_ok:
-                print("\n  WARNING: Some registers did not program correctly. Aborting CRC step.")
+                print("\n  WARNING: Some registers did not program correctly.")
                 return
 
             print(f"\n  SUCCESS: {name} permanently set to 0x{val:02X}")

@@ -217,9 +217,8 @@ EEPROM_CTRL_FIXED_TIME         = 0x08
 EEPROM_STATUS_READ_IN_PROGRESS    = 0x01
 EEPROM_STATUS_ERASE_IN_PROGRESS   = 0x02
 EEPROM_STATUS_PROGRAM_IN_PROGRESS = 0x04
-# ---------------------------------------------------------------------------
-# Page boundary labels for display grouping
-# ---------------------------------------------------------------------------
+
+
 EEPROM_PAGES = {
     0x00: "PAGE 0-1  — H Coefficients",
     0x0C: "PAGE 1-2  — G Coefficients",

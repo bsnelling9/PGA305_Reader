@@ -6,6 +6,9 @@ import config
 from typing import Optional, Dict
 from eeprom_addresses import *
 
+
+# Clean this code to use the config files and not the excel file anymore
+# Also the Identification has changed, so need to update
 class PGA305Reader:
 
     def __init__(self, serial_port=None, baud_rate=None, timeout_ms=None):
