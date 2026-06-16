@@ -2,15 +2,11 @@ import config
 from pga305_reader import PGA305Reader
 from eeprom_defaults import EEPROM_DEFAULTS
 from eeprom_addresses import *
-from helpers.calculate_crc import calculate_crc # type: ignore
+from helpers.calculate_crc import calculate_crc
 import time
 
 EEPROM_PAGE_SIZE = 8
-PAGE_F_NUMBER    = 0x0F
-PAGE_F_START     = 0x78
 
-
-# Pages to reset (0x00-0x0D), page E (PN/SN/PRANGE) skipped
 PAGES_TO_RESET = list(range(0x00, 0x0E))
 
 class ResetEEPROM:
@@ -46,10 +42,10 @@ class ResetEEPROM:
 
             print("Command mode active\n")
 
-            print("Step 1: Saving PN, SN, PRANGE...")
+            print("Step 1: Saving PN, SN, PRANGE and Serial Number bytes...")
             preserved = self._read_preserved()
             if preserved is None:
-                print("ERROR: Could not read PN/SN/PRANGE — aborting.")
+                print("ERROR: Could not read preserved registers — aborting.")
                 return
             self._print_preserved(preserved)
 
@@ -59,15 +55,21 @@ class ResetEEPROM:
                     print(f"ERROR: Failed on page 0x{page:02X} — aborting.")
                     return
 
-            print("\nStep 3: Verifying PN/SN/PRANGE preserved...")
+            print("\nStep 3: Restoring Serial Number bytes...")
+            for addr in [0x64, 0x65, 0x66, 0x67]:
+                if not self.reader.write_register(addr, preserved[addr], config.EEPROM_ADDR):
+                    print(f"  ERROR: Could not restore 0x{addr:02X}")
+                    return
+
+            print("\nStep 4: Verifying preserved registers...")
             preserved_after = self._read_preserved()
             if preserved_after != preserved:
-                print("WARNING: PN/SN/PRANGE changed — this should not have happened!")
+                print("WARNING: Preserved registers changed — this should not have happened!")
                 self._print_preserved(preserved_after)
             else:
-                print("  PN/SN/PRANGE unchanged.")
+                print("  All preserved registers unchanged.")
 
-            print("\nStep 4: Retriggering CRC...")
+            print("\nStep 5: Retriggering CRC...")
             if not calculate_crc(self.reader):
                 print("WARNING: CRC retrigger failed.")
                 return
@@ -89,20 +91,26 @@ class ResetEEPROM:
                 print(f"  ERROR: Could not read 0x{addr:02X}")
                 return None
             preserved[addr] = val
+
+        for addr in [0x64, 0x65, 0x66, 0x67]:
+            val = self.reader.read_register(addr, config.EEPROM_ADDR)
+            if val is None:
+                print(f"  ERROR: Could not read 0x{addr:02X}")
+                return None
+            preserved[addr] = val
+
         return preserved
 
     def _print_preserved(self, preserved):
-        for addr, val in preserved.items():
+        for addr, val in sorted(preserved.items()):
             name = EEPROM_REGISTERS.get(addr, f"0x{addr:02X}")
             print(f"  0x{addr:02X}  {name:<20}  0x{val:02X}  ({val})")
 
     def _build_page_data(self, page):
         page_start = page * EEPROM_PAGE_SIZE
-        
         return [EEPROM_DEFAULTS.get(page_start + i, 0x00) for i in range(EEPROM_PAGE_SIZE)]
 
     def _program_page(self, page, page_data):
-
         page_start = page * EEPROM_PAGE_SIZE
 
         if not self.reader.write_register(EEPROM_PAGE_ADDR_REG, page, config.EEPROM_ADDR):
@@ -118,16 +126,15 @@ class ResetEEPROM:
             print(f"  ERROR: Could not trigger program for page 0x{page:02X}")
             return False
 
-        time_out = False
+        timed_out = True
         for _ in range(20):
             time.sleep(0.1)
             status = self.reader.read_register(EEPROM_STATUS_REG, config.EEPROM_ADDR)
-            
             if status is not None and (status & 0x06) == 0:
-                time_out = True
+                timed_out = False
                 break
 
-        if not time_out:
+        if timed_out:
             print(f"  WARNING: Page 0x{page:02X} program timed out")
             return False
 
@@ -135,7 +142,6 @@ class ResetEEPROM:
         for i, expected in enumerate(page_data):
             addr = page_start + i
             readback = self.reader.read_register(addr, config.EEPROM_ADDR)
-            
             if readback != expected:
                 name = EEPROM_REGISTERS.get(addr, f"0x{addr:02X}")
                 print(f"  MISMATCH: 0x{addr:02X} {name:<20} expected 0x{expected:02X} got 0x{readback:02X}")
@@ -145,12 +151,8 @@ class ResetEEPROM:
 
     def _reset_page(self, page):
         page_start = page * EEPROM_PAGE_SIZE
-        
         print(f"  Page 0x{page:02X} (0x{page_start:02X}-0x{page_start+7:02X})...", end=" ", flush=True)
-        
         page_data = self._build_page_data(page)
-        
         ok = self._program_page(page, page_data)
-        
         print("OK" if ok else "FAILED")
         return ok

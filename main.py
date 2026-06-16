@@ -1,5 +1,4 @@
 import sys
-import time
 import config
 from pga305_reader import PGA305Reader
 from scripts.gpio_diagnostic import run_gpio_diagnostic
@@ -12,11 +11,10 @@ from scan_mux_channels import ScanMuxChannels
 from enable_owi import EnableOWI
 from handle_uart import HandleUART
 from read_control_registers import ReadControlRegisters
-from test_output import test_output
-from calculate_pressure import calculate_pressure
+from sensor_output import sensor_output
 from reset_eeprom import ResetEEPROM
 from write_calibration import CalibrationWriter
-from helpers.calculate_crc import calculate_crc
+
 
 def print_header():
     print("\n" + "="*70)
@@ -41,12 +39,12 @@ def print_menu():
     print("  12. Write EEPROM register")
     print("  13. Read passive (compensation control + DAC)")
     print("  14. Read AMUX_CTRL")
-    print("  15. Test standalone output")
+    print("  15. Sensor output (DMM / Compute DAC)")
     print("  16. Write Calibration Coefficients and Settings")
-    print("  a.  Calculate/verify EEPROM CRC")
-    print("  b.  Calculate pressure (P)")
+    print("  c.  Reset EEPROM")
     print("  0.  Exit")
     print("-" * 70)
+
 
 def read_passive():
     reader = PGA305Reader()
@@ -72,30 +70,28 @@ def read_passive():
 
         dac_reg0_1 = reader.read_register(0x30, config.I2C_CONTROL)
         dac_reg0_2 = reader.read_register(0x31, config.I2C_CONTROL)
-        
+
         if dac_reg0_1 is not None and dac_reg0_2 is not None:
             dac_code = (dac_reg0_2 << 8) | dac_reg0_1
             print(f"\nDAC_REG0_1 (0x22/0x30) = 0x{dac_reg0_1:02X}")
             print(f"DAC_REG0_2 (0x22/0x31) = 0x{dac_reg0_2:02X}")
             print(f"DAC code = 0x{dac_code:04X} ({dac_code})")
-        
         else:
             print("READ FAILED")
 
         print("\nEntering command mode...")
-        
+
         if not reader.enter_command_mode():
             print("ERROR: Could not enter command mode")
             return
 
         comp_ctrl = reader.read_register(0x0C, config.PGA305_I2C_ADDR)
-        
+
         if comp_ctrl is not None:
             print(f"\nAFTER command mode:")
             print(f"COMPENSATION_CONTROL = 0x{comp_ctrl:02X}")
             print(f"  IF_SEL      (bit 1): {(comp_ctrl >> 1) & 1}")
             print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
-        
         else:
             print("READ FAILED after command mode")
 
@@ -255,21 +251,15 @@ def main():
         elif choice == '14':
             read_amux_ctrl()
         elif choice == '15':
-            test_output()
-        #this will not pass the channel as it will always be channel 1
-        # This function will only be on my computer and not on the cal stations
+            sensor_output()
         elif choice == '16':
             CalibrationWriter().run()
         elif choice == '17':
             CalibrationWriter().clear_calibration()
-        elif choice == 'a':
-            calculate_crc()
-        elif choice == 'b':
-            calculate_pressure()
         elif choice == 'c':
             ResetEEPROM(channel=config.CHANNEL).run()
         else:
-            print("\nInvalid choice. Please select 0-15.")
+            print("\nInvalid choice. Please select 0-16.")
 
         input("\nPress Enter to continue...")
 
