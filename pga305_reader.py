@@ -1,14 +1,10 @@
 import pyvisa
 import time
-import csv
-import os
 import config
 from typing import Optional, Dict
 from eeprom_addresses import *
 
-
-# Clean this code to use the config files and not the excel file anymore
-# Also the Identification has changed, so need to update
+# TODO: Identification command has changed, needs updating
 class PGA305Reader:
 
     def __init__(self, serial_port=None, baud_rate=None, timeout_ms=None):
@@ -16,10 +12,6 @@ class PGA305Reader:
         self.baud_rate = baud_rate or config.BAUD_RATE
         self.timeout_ms = timeout_ms or config.TIMEOUT_MS
         self.inst = None
-        self.register_map = None
-
-        if config.REGISTER_MAP_PATH and os.path.exists(config.REGISTER_MAP_PATH):
-            self._load_register_map(config.REGISTER_MAP_PATH)
 
     def connect(self):
         rm = pyvisa.ResourceManager()
@@ -44,6 +36,17 @@ class PGA305Reader:
             self.inst.close()
             self.inst = None
 
+    def send_command(self, cmd: str) -> bytes:
+        self.inst.write_raw((cmd + '\n').encode('ascii'))
+        time.sleep(0.05)
+        try:
+            if self.inst.bytes_in_buffer > 0:
+                return self.inst.read_bytes(self.inst.bytes_in_buffer)
+            else:
+                return self.inst.read_bytes(64)
+        except:
+            return b''
+    
     def write_then_read_sequential(self, write_reg: int, write_val: int, i2c_addr: int, read_reg: int, read_count: int) -> Optional[list]:
         
         write_cmd = f"imw{i2c_addr:02X}{write_reg:02X}{write_val:02X}"
@@ -93,30 +96,6 @@ class PGA305Reader:
             return None
         return None
 
-    def send_command(self, cmd: str) -> bytes:
-        self.inst.write_raw((cmd + '\n').encode('ascii'))
-        time.sleep(0.05)
-
-        try:
-            if self.inst.bytes_in_buffer > 0:
-                return self.inst.read_bytes(self.inst.bytes_in_buffer)
-            else:
-                return self.inst.read_bytes(64)
-        except:
-            return b''
-
-    def set_channel(self, channel: int):
-        self.send_command(f"mx2{channel:02X}")
-        time.sleep(config.CHANNEL_SWITCH_DELAY)
-
-    def disconnect_channel(self):
-        self.send_command("mx001")
-        time.sleep(config.CHANNEL_SWITCH_DELAY)
-
-    def reset_i2c(self):
-        self.send_command("i2cr")
-        time.sleep(config.I2C_RESET_DELAY)
-
     def read_register(self, reg_addr: int, i2c_addr: int = None) -> Optional[int]:
         if i2c_addr is None:
             i2c_addr = config.PGA305_I2C_ADDR
@@ -129,6 +108,25 @@ class PGA305Reader:
             except:
                 return None
         return None
+
+    def write_register(self, reg_addr: int, value: int, i2c_addr: int) -> bool:
+        
+        response = self.send_command(f"imw{i2c_addr:02X}{reg_addr:02X}{value:02X}")
+        
+        return len(response) > 0 and response[0] == 6
+
+
+    def set_channel(self, channel: int):
+        self.send_command(f"mx2{channel:02X}")
+        time.sleep(config.CHANNEL_SWITCH_DELAY)
+
+    def disconnect_channel(self):
+        self.send_command("mx001")
+        time.sleep(config.CHANNEL_SWITCH_DELAY)
+
+    def reset_i2c(self):
+        self.send_command("i2cr")
+        time.sleep(config.I2C_RESET_DELAY)
 
     def get_board_identity(self) -> str:
         
@@ -145,13 +143,7 @@ class PGA305Reader:
             print(f"  I2C_EN      (bit 1): {(value >> 1) & 1}")
             print(f"  SPI_EN      (bit 0): {value & 1}")
         return value
-
-    def write_register(self, reg_addr: int, value: int, i2c_addr: int) -> bool:
-        
-        response = self.send_command(f"imw{i2c_addr:02X}{reg_addr:02X}{value:02X}")
-        
-        return len(response) > 0 and response[0] == 6
-
+    
     def enter_command_mode(self, max_retries=None) -> bool:
         if max_retries is None:
             max_retries = config.CM_MAX_RETRIES
@@ -246,23 +238,3 @@ class PGA305Reader:
             'serial_number': serial_number,
             'prange': prange
         }
-
-    #Eventually remove this and use eeprom_addresses.py
-    def _load_register_map(self, csv_path: str) -> bool:
-        if not os.path.exists(csv_path):
-            return False
-
-        self.register_map = {}
-        try:
-            with open(csv_path, 'r') as f:
-                for row in csv.DictReader(f):
-                    name = row.get('REGISTER NAME', '').strip()
-                    offset_str = row.get('DI Offset Address', '').strip()
-                    if name and offset_str:
-                        try:
-                            self.register_map[name] = int(offset_str, 0)
-                        except ValueError:
-                            pass
-            return len(self.register_map) > 0
-        except:
-            return False

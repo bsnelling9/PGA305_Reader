@@ -102,80 +102,6 @@ def read_passive():
         reader.disconnect_channel()
         reader.disconnect()
 
-
-def read_amux_ctrl():
-    reader = PGA305Reader()
-
-    try:
-        print(f"\nConnecting to {config.SERIAL_PORT}...")
-        reader.connect()
-
-        print(f"Switching to channel {config.CHANNEL}...")
-        reader.set_channel(config.CHANNEL)
-
-        amux_ctrl = reader.read_register(0x67, config.I2C_CONTROL)
-        if amux_ctrl is not None:
-            print(f"\nAMUX_CTRL (0x22/0x67) = 0x{amux_ctrl:02X} ({amux_ctrl:08b}b)")
-            print(f"  TEST_MUX_DAC_EN (bit 0): {amux_ctrl & 1}")
-            print(f"  TEST_MUX_P_EN   (bit 1): {(amux_ctrl >> 1) & 1}")
-            print(f"  TEST_MUX_T_EN   (bit 2): {(amux_ctrl >> 2) & 1}")
-            print(f"  TSEM_N          (bit 3): {(amux_ctrl >> 3) & 1}")
-        else:
-            print("READ FAILED")
-
-    except Exception as e:
-        print(f"\nERROR: {e}")
-
-    finally:
-        reader.disconnect_channel()
-        reader.disconnect()
-
-
-def read_single_sensor():
-    print_header()
-    print("READ SENSOR DATA")
-    print("=" * 70)
-
-    channel = config.CHANNEL
-    if channel < 0 or channel > 7:
-        print("ERROR: Channel must be between 0 and 7")
-        return
-
-    reader = PGA305Reader()
-
-    try:
-        print(f"\nConnecting to {config.SERIAL_PORT}...")
-        reader.connect()
-
-        board_id = reader.get_board_identity()
-        print(f"Board: {board_id}")
-
-        data = reader.read_sensor_data(channel)
-
-        if data:
-            print("\n" + "=" * 70)
-            print("RESULT")
-            print("=" * 70)
-            print(f"Part Number:   {data['part_number']}")
-            print(f"Serial Number: {data['serial_number']}")
-            if data['prange'] is not None:
-                print(f"PRange:        {data['prange']}")
-            print("=" * 70)
-
-            if data['serial_number'] == 0 and data['part_number'] in ['A0', 'S0']:
-                print("\nNote: This sensor appears to be blank/unprogrammed")
-        else:
-            print("\nERROR: Failed to read sensor data")
-
-    except Exception as e:
-        print(f"\nERROR: {e}")
-        import traceback
-        traceback.print_exc()
-
-    finally:
-        reader.disconnect()
-
-
 def scan_all_channels():
     print_header()
     print("SCANNING ALL CHANNELS")
@@ -222,8 +148,6 @@ def main():
         if choice == '0':
             print("\nExiting...")
             sys.exit(0)
-        elif choice == '1':
-            read_single_sensor()
         elif choice == '2':
             scan_all_channels()
         elif choice == '3':
@@ -247,9 +171,7 @@ def main():
         elif choice == '12':
             WriteEEPROM(channel=config.CHANNEL).run()
         elif choice == '13':
-            read_passive()
-        elif choice == '14':
-            read_amux_ctrl()
+            read_passive()          
         elif choice == '15':
             sensor_output()
         elif choice == '16':

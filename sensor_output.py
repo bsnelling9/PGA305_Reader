@@ -1,3 +1,4 @@
+import time
 import config
 from pga305_reader import PGA305Reader
 from helpers.select_channel import select_channel
@@ -8,10 +9,8 @@ def labview_padc(lsb, mid, msb):
     magnitude = ((msb % 128) << 16) | (mid << 8) | lsb
     return magnitude * multiplier
 
-
 def to_signed_24(v):
     return v - 0x1000000 if v & 0x800000 else v
-
 
 def read_dmm_voltage(reader, channel):
     response = reader.send_command(f"mx1{channel:02X}")
@@ -21,58 +20,52 @@ def read_dmm_voltage(reader, channel):
 
 
 def read_and_calculate(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en):
-    padc_msb = reader.write_then_read_sequential(0x09, 0x00, config.PGA305_I2C_ADDR, 0x04, 1)[0]
-    p_bytes = reader.write_then_read_sequential(0x09, 0x70, config.PGA305_I2C_ADDR, 0x04, 2)
-    padc_lsb = p_bytes[1]
-    padc_mid = p_bytes[0]
-
-    if None in (padc_lsb, padc_mid, padc_msb):
-        print("ERROR: Could not read PADC")
+    reader.write_register(0x09, 0x00, config.PGA305_I2C_ADDR)
+    padc_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
+    time.sleep(0.1)
+    padc_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
+    padc_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+ 
+    reader.write_register(0x09, 0x02, config.PGA305_I2C_ADDR)
+    tadc_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
+    time.sleep(0.1)
+    tadc_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
+    tadc_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+ 
+    reader.write_register(0x09, 0x04, config.PGA305_I2C_ADDR)
+    data_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
+    time.sleep(0.1)
+    data_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
+    data_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+ 
+    if None in (padc_msb, padc_mid, padc_lsb, tadc_msb, tadc_mid, tadc_lsb, data_msb, data_mid, data_lsb):
+        print("ERROR: Failed to read core sensor data.")
         return
-
-    tadc_msb = reader.write_then_read_sequential(0x09, 0x02, config.PGA305_I2C_ADDR, 0x04, 1)[0]
-    t_bytes = reader.write_then_read_sequential(0x09, 0x70, config.PGA305_I2C_ADDR, 0x04, 2)
-    tadc_lsb = t_bytes[1]
-    tadc_mid = t_bytes[0]
-
-    data_msb = reader.write_then_read_sequential(0x09, 0x04, config.PGA305_I2C_ADDR, 0x04, 1)[0]
-    d_bytes = reader.write_then_read_sequential(0x09, 0x70, config.PGA305_I2C_ADDR, 0x04, 2)
-    data_lsb = d_bytes[1]
-    data_mid = d_bytes[0]
-
-    padc_raw = labview_padc(padc_lsb, padc_mid, padc_msb)
-    tadc_raw = labview_padc(tadc_lsb, tadc_mid, tadc_msb)
+ 
+    padc_raw = labview_padc((padc_msb << 16) | (padc_mid << 8) | padc_lsb)
+    tadc_raw = labview_padc((tadc_msb << 16) | (tadc_mid << 8) | tadc_lsb)
     data_out_raw = (data_msb << 16) | (data_mid << 8) | data_lsb
     data_out = to_signed_24(data_out_raw)
     dac = data_out / 1024
-
-    diag_msb = reader.write_then_read_sequential(0x09, 0x06, config.PGA305_I2C_ADDR, 0x04, 1)[0]
-    d_bytes = reader.write_then_read_sequential(0x09, 0x70, config.PGA305_I2C_ADDR, 0x04, 2)
-    diag_lsb = d_bytes[0]
-    diag_mid = d_bytes[1]
-
-    if None in (diag_lsb, diag_mid, diag_msb):
-        print("DIAG = could not read")
-    else:
-        diag_raw = (diag_msb << 16) | (diag_mid << 8) | diag_lsb
-        print(f"DIAG = 0x{diag_raw:06X}  LSB=0x{diag_lsb:02X} MID=0x{diag_mid:02X} MSB=0x{diag_msb:02X}")
-
+ 
     if off_en:
         P = padc_gain * (padc_raw + padc_offset)
         T = tadc_gain * (tadc_raw + tadc_offset)
     else:
         P = padc_gain * padc_raw + padc_offset
         T = tadc_gain * tadc_raw + tadc_offset
-
+ 
     P_normalized = P / config.P_NORM
     T_normalized = T / config.T_NORM
-
-    print(f"PADC = {padc_raw} (0x{padc_raw & 0xFFFFFF:06X})  LSB=0x{padc_lsb:02X} MID=0x{padc_mid:02X} MSB=0x{padc_msb:02X}")
-    print(f"TADC = {tadc_raw} (0x{tadc_raw & 0xFFFFFF:06X})  LSB=0x{tadc_lsb:02X} MID=0x{tadc_mid:02X} MSB=0x{tadc_msb:02X}")
+ 
+    print(f"PADC     = {padc_raw} (0x{padc_raw & 0xFFFFFF:06X})  LSB=0x{padc_lsb:02X} MID=0x{padc_mid:02X} MSB=0x{padc_msb:02X}")
+    print(f"TADC     = {tadc_raw} (0x{tadc_raw & 0xFFFFFF:06X})  LSB=0x{tadc_lsb:02X} MID=0x{tadc_mid:02X} MSB=0x{tadc_msb:02X}")
     print(f"DATA_OUT = {data_out}  LSB=0x{data_lsb:02X} MID=0x{data_mid:02X} MSB=0x{data_msb:02X}")
-    print(f"DAC = {dac:.4f}")
-    print()
-    print(f"P = {P} ({P_normalized:.6f})")
+    print(f"DAC      = {dac:.4f}")
+    print(f"\nP = {P} ({P_normalized:.6f})")
     print(f"T = {T} ({T_normalized:.6f})")
 
 
@@ -93,6 +86,7 @@ def compute_dac(reader, channel):
     gain_lsb = reader.read_register(0x44, config.EEPROM_ADDR)
     gain_mid = reader.read_register(0x45, config.EEPROM_ADDR)
     gain_msb = reader.read_register(0x46, config.EEPROM_ADDR)
+    
     if None in (gain_lsb, gain_mid, gain_msb):
         print("ERROR: Could not read PADC_GAIN")
         return
@@ -101,6 +95,7 @@ def compute_dac(reader, channel):
     off_lsb = reader.read_register(0x47, config.EEPROM_ADDR)
     off_mid = reader.read_register(0x48, config.EEPROM_ADDR)
     off_msb = reader.read_register(0x49, config.EEPROM_ADDR)
+    
     if None in (off_lsb, off_mid, off_msb):
         print("ERROR: Could not read PADC_OFFSET")
         return

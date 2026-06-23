@@ -6,7 +6,6 @@ from pga305_reader import PGA305Reader
 
 OUTPUT_DIR = "scan_channels_output"
 
-
 class ScanMuxChannels:
     """
     Scans all channels repeatedly, reading part number, serial number,
@@ -50,14 +49,14 @@ class ScanMuxChannels:
 
     def _scan_channel(self, channel: int, iteration: int) -> dict:
         result = {
-            'iteration':     iteration,
-            'channel':       channel,
-            'timestamp':     datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3],
-            'part_number':   '',
+            'iteration': iteration,
+            'channel': channel,
+            'timestamp': datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3],
+            'part_number': '',
             'serial_number': '',
-            'tadc':          '',
-            'padc':          '',
-            'status':        'FAIL',
+            'tadc': '',
+            'padc': '',
+            'status': 'FAIL',
         }
 
         try:
@@ -67,7 +66,7 @@ class ScanMuxChannels:
                 result['status'] = 'CM_FAIL'
                 return result
 
-            result['part_number']   = sensor['part_number']
+            result['part_number'] = sensor['part_number']
             result['serial_number'] = f"{sensor['serial_number']:06d}"
 
             self.reader.set_channel(channel)
@@ -104,17 +103,17 @@ class ScanMuxChannels:
 
     def _print_result(self, r: dict):
         status = r['status']
-        ch     = r['channel']
-        pn     = r['part_number'] or '---'
-        sn     = r['serial_number'] or '---'
-        tadc   = r['tadc'] if r['tadc'] != '' else '---'
-        padc   = r['padc'] if r['padc'] != '' else '---'
+        ch = r['channel']
+        pn = r['part_number'] or '---'
+        sn = r['serial_number'] or '---'
+        tadc = r['tadc'] if r['tadc'] != '' else '---'
+        padc = r['padc'] if r['padc'] != '' else '---'
         print(f"  CH{ch:02d}  {status:<12}  PN={pn:<8}  SN={sn}  TADC={tadc}  PADC={padc}")
 
     def _save_csv(self):
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename  = os.path.join(OUTPUT_DIR, f"scan_{timestamp}.csv")
+        filename = os.path.join(OUTPUT_DIR, f"scan_{timestamp}.csv")
 
         headers = ['Iteration', 'Channel', 'Timestamp', 'Part Number',
                    'Serial Number', 'TADC', 'PADC', 'Status']
@@ -124,14 +123,14 @@ class ScanMuxChannels:
             writer.writeheader()
             for r in self.results:
                 writer.writerow({
-                    'Iteration':     r['iteration'],
-                    'Channel':       r['channel'],
-                    'Timestamp':     r['timestamp'],
-                    'Part Number':   r['part_number'],
+                    'Iteration': r['iteration'],
+                    'Channel': r['channel'],
+                    'Timestamp': r['timestamp'],
+                    'Part Number': r['part_number'],
                     'Serial Number': r['serial_number'],
-                    'TADC':          r['tadc'] if r['tadc'] != '' else 'READ FAIL',
-                    'PADC':          r['padc'] if r['padc'] != '' else 'READ FAIL',
-                    'Status':        r['status'],
+                    'TADC': r['tadc'] if r['tadc'] != '' else 'READ FAIL',
+                    'PADC': r['padc'] if r['padc'] != '' else 'READ FAIL',
+                    'Status': r['status'],
                 })
 
         print(f"\nResults saved to: {filename}")
