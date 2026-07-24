@@ -9,8 +9,10 @@ def labview_padc(lsb, mid, msb):
     magnitude = ((msb % 128) << 16) | (mid << 8) | lsb
     return magnitude * multiplier
 
+
 def to_signed_24(v):
     return v - 0x1000000 if v & 0x800000 else v
+
 
 def read_dmm_voltage(reader, channel):
     response = reader.send_command(f"mx1{channel:02X}")
@@ -19,54 +21,96 @@ def read_dmm_voltage(reader, channel):
     input("Press enter to continue...")
 
 
-def read_and_calculate(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en):
-    reader.write_register(0x09, 0x00, config.PGA305_I2C_ADDR)
-    padc_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
-    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
-    time.sleep(0.1)
-    padc_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
-    padc_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
- 
-    reader.write_register(0x09, 0x02, config.PGA305_I2C_ADDR)
-    tadc_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
-    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
-    time.sleep(0.1)
-    tadc_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
-    tadc_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
- 
-    reader.write_register(0x09, 0x04, config.PGA305_I2C_ADDR)
-    data_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
-    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
-    time.sleep(0.1)
-    data_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
-    data_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
- 
-    if None in (padc_msb, padc_mid, padc_lsb, tadc_msb, tadc_mid, tadc_lsb, data_msb, data_mid, data_lsb):
-        print("ERROR: Failed to read core sensor data.")
-        return
- 
-    padc_raw = labview_padc((padc_msb << 16) | (padc_mid << 8) | padc_lsb)
-    tadc_raw = labview_padc((tadc_msb << 16) | (tadc_mid << 8) | tadc_lsb)
-    data_out_raw = (data_msb << 16) | (data_mid << 8) | data_lsb
-    data_out = to_signed_24(data_out_raw)
-    dac = data_out / 1024
- 
+def compute_p_and_t(padc_raw, tadc_raw, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en):
     if off_en:
         P = padc_gain * (padc_raw + padc_offset)
         T = tadc_gain * (tadc_raw + tadc_offset)
     else:
         P = padc_gain * padc_raw + padc_offset
         T = tadc_gain * tadc_raw + tadc_offset
- 
+
     P_normalized = P / config.P_NORM
     T_normalized = T / config.T_NORM
- 
+
+    return P, T, P_normalized, T_normalized
+
+
+def print_p_and_t(P, T, P_normalized, T_normalized):
+    print(f"\nP = {P} ({P_normalized:.6f})")
+    print(f"T = {T} ({T_normalized:.6f})")
+
+
+def read_and_calculate_direct(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en):
+
+    padc_byte0 = reader.read_register(0x20, config.I2C_CONTROL)
+    padc_byte1 = reader.read_register(0x21, config.I2C_CONTROL)
+    padc_byte2 = reader.read_register(0x22, config.I2C_CONTROL)
+
+    print(f"DEBUG: padc_byte0={padc_byte0}, padc_byte1={padc_byte1}, padc_byte2={padc_byte2}")
+    tadc_byte0 = reader.read_register(0x24, config.I2C_CONTROL)
+    tadc_byte1 = reader.read_register(0x25, config.I2C_CONTROL)
+    tadc_byte2 = reader.read_register(0x26, config.I2C_CONTROL)
+    print(f"DEBUG: tadc_byte0={tadc_byte0}, tadc_byte1={tadc_byte1}, tadc_byte2={tadc_byte2}")
+
+    if None in (padc_byte0, padc_byte1, padc_byte2, tadc_byte0, tadc_byte1, tadc_byte2):
+        print("ERROR: Failed to read direct PADC/TADC registers.")
+        return
+
+    padc_raw = labview_padc(padc_byte0, padc_byte1, padc_byte2)
+    tadc_raw = labview_padc(tadc_byte0, tadc_byte1, tadc_byte2)
+
+    P, T, P_normalized, T_normalized = compute_p_and_t(
+        padc_raw, tadc_raw, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en
+    )
+
+    print(f"[DIRECT] PADC = {padc_raw} (0x{padc_raw & 0xFFFFFF:06X})  "
+          f"B0=0x{padc_byte0:02X} B1=0x{padc_byte1:02X} B2=0x{padc_byte2:02X}")
+    print(f"[DIRECT] TADC = {tadc_raw} (0x{tadc_raw & 0xFFFFFF:06X})  "
+          f"B0=0x{tadc_byte0:02X} B1=0x{tadc_byte1:02X} B2=0x{tadc_byte2:02X}")
+    print_p_and_t(P, T, P_normalized, T_normalized)
+
+
+def read_and_calculate_runtime(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en):
+    reader.write_register(0x09, 0x00, config.PGA305_I2C_ADDR)
+    padc_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
+    time.sleep(0.1)
+    padc_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
+    padc_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+
+    reader.write_register(0x09, 0x02, config.PGA305_I2C_ADDR)
+    tadc_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
+    time.sleep(0.1)
+    tadc_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
+    tadc_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+
+    reader.write_register(0x09, 0x04, config.PGA305_I2C_ADDR)
+    data_msb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+    reader.write_register(0x09, 0x70, config.PGA305_I2C_ADDR)
+    time.sleep(0.1)
+    data_mid = reader.read_register(0x05, config.PGA305_I2C_ADDR)
+    data_lsb = reader.read_register(0x04, config.PGA305_I2C_ADDR)
+
+    if None in (padc_msb, padc_mid, padc_lsb, tadc_msb, tadc_mid, tadc_lsb, data_msb, data_mid, data_lsb):
+        print("ERROR: Failed to read core sensor data.")
+        return
+
+    padc_raw = labview_padc(padc_lsb, padc_mid, padc_msb)
+    tadc_raw = labview_padc(tadc_lsb, tadc_mid, tadc_msb)
+    data_out_raw = (data_msb << 16) | (data_mid << 8) | data_lsb
+    data_out = to_signed_24(data_out_raw)
+    dac = data_out / 1024
+
+    P, T, P_normalized, T_normalized = compute_p_and_t(
+        padc_raw, tadc_raw, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en
+    )
+
     print(f"PADC     = {padc_raw} (0x{padc_raw & 0xFFFFFF:06X})  LSB=0x{padc_lsb:02X} MID=0x{padc_mid:02X} MSB=0x{padc_msb:02X}")
     print(f"TADC     = {tadc_raw} (0x{tadc_raw & 0xFFFFFF:06X})  LSB=0x{tadc_lsb:02X} MID=0x{tadc_mid:02X} MSB=0x{tadc_msb:02X}")
     print(f"DATA_OUT = {data_out}  LSB=0x{data_lsb:02X} MID=0x{data_mid:02X} MSB=0x{data_msb:02X}")
     print(f"DAC      = {dac:.4f}")
-    print(f"\nP = {P} ({P_normalized:.6f})")
-    print(f"T = {T} ({T_normalized:.6f})")
+    print_p_and_t(P, T, P_normalized, T_normalized)
 
 
 def compute_dac(reader, channel):
@@ -86,7 +130,7 @@ def compute_dac(reader, channel):
     gain_lsb = reader.read_register(0x44, config.EEPROM_ADDR)
     gain_mid = reader.read_register(0x45, config.EEPROM_ADDR)
     gain_msb = reader.read_register(0x46, config.EEPROM_ADDR)
-    
+
     if None in (gain_lsb, gain_mid, gain_msb):
         print("ERROR: Could not read PADC_GAIN")
         return
@@ -95,7 +139,7 @@ def compute_dac(reader, channel):
     off_lsb = reader.read_register(0x47, config.EEPROM_ADDR)
     off_mid = reader.read_register(0x48, config.EEPROM_ADDR)
     off_msb = reader.read_register(0x49, config.EEPROM_ADDR)
-    
+
     if None in (off_lsb, off_mid, off_msb):
         print("ERROR: Could not read PADC_OFFSET")
         return
@@ -136,22 +180,27 @@ def compute_dac(reader, channel):
         print("Equation:   P = PGAIN x PADC + POFFSET    [Eq. 2]")
         print("Equation:   T = TGAIN x TADC + TOFFSET    [Eq. 3]")
 
-    reader.write_register(0x0C, 0x00, config.PGA305_I2C_ADDR)
+    #reader.write_register(0x0C, 0x00, config.PGA305_I2C_ADDR)
 
+   # print("\n" + "=" * 70)
+    #read_and_calculate_runtime(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en)
     print("\n" + "=" * 70)
-    read_and_calculate(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en)
+    print("[Trying direct DI Page 2 read as alternate method]")
+    read_and_calculate_direct(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en)
     print("\n" + "=" * 70)
-    print("  r = read again   x = back to sensor menu")
+    print("  r = read again (runtime cmd)   d = read again (direct)   x = back to sensor menu")
     print("=" * 70)
 
     while True:
-        user_input = input("\nAction [r/x]: ").strip().lower()
+        user_input = input("\nAction [r/d/x]: ").strip().lower()
         if user_input == 'x':
             break
         elif user_input == 'r':
-            read_and_calculate(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en)
+            read_and_calculate_runtime(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en)
+        elif user_input == 'd':
+            read_and_calculate_direct(reader, padc_gain, padc_offset, tadc_gain, tadc_offset, off_en)
         else:
-            print("  Type 'r' to read again or 'x' to go back.")
+            print("  Type 'r', 'd', or 'x'.")
 
 
 def print_sensor_menu(channel):

@@ -6,9 +6,10 @@ from helpers.calculate_crc import calculate_crc
 
 EEPROM_PAGE_SIZE = 8
 
-# This is hardcoded to write to channel 1 
+# This is hardcoded to write to channel 1
 # Only used at my desktop and not the calibration station
 COEFFICIENT_CHANNEL = 1
+
 
 class CalibrationWriter:
     def __init__(self):
@@ -48,9 +49,10 @@ class CalibrationWriter:
         finally:
             self.reader.disconnect_channel()
             self.reader.disconnect()
-        
-    def parse_dut_file(self, file_path):
-        updates = {}
+
+
+    def get_active_label(self, file_path):
+
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Missing calibration file: {file_path}")
 
@@ -60,12 +62,43 @@ class CalibrationWriter:
                 line = line.strip()
                 if not line or line.startswith('#') or line.startswith(';'):
                     continue
-                
+
                 if line.startswith('[') and line.endswith(']'):
                     current_section = line[1:-1].strip()
                     continue
 
-                if current_section in ("CalibrationSettings", "Coefficients"):
+                if current_section == "ActiveConfig" and '=' in line:
+                    key, val = line.split('=', 1)
+                    if key.strip().upper() == "OUTPUT_LABEL":
+                        return val.strip().replace('"', '')
+
+        return None
+
+    def parse_dut_file(self, file_path, variant_label=None):
+
+        updates = {}
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Missing calibration file: {file_path}")
+
+        if variant_label:
+            settings_section_name = f"CALIBRATIONSETTINGS_{variant_label.upper()}"
+            coeff_section_name = f"COEFFICIENTS_{variant_label.upper()}"
+        else:
+            settings_section_name = "CALIBRATIONSETTINGS"
+            coeff_section_name = "COEFFICIENTS"
+
+        current_section = None
+        with open(file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or line.startswith(';'):
+                    continue
+
+                if line.startswith('[') and line.endswith(']'):
+                    current_section = line[1:-1].strip().upper()
+                    continue
+
+                if current_section in (settings_section_name, coeff_section_name):
                     if '=' in line:
                         key, val = line.split('=', 1)
                         key = key.strip().upper()
@@ -76,7 +109,7 @@ class CalibrationWriter:
 
                         if key in COEFFICIENTS_MAP:
                             reg_addrs = COEFFICIENTS_MAP[key]
-                            
+
                             try:
                                 int_val = int(val, 16)
                             except ValueError:
@@ -105,7 +138,7 @@ class CalibrationWriter:
             status = self.reader.read_register(EEPROM_STATUS_REG, config.EEPROM_ADDR)
             if status is not None and (status & (EEPROM_STATUS_ERASE_IN_PROGRESS | EEPROM_STATUS_PROGRAM_IN_PROGRESS)) == 0:
                 return True
-        
+
         return False
 
     def process_flash_routine(self, target_updates):
@@ -115,7 +148,7 @@ class CalibrationWriter:
         for page in pages_to_update:
             page_start = page * EEPROM_PAGE_SIZE
             print(f"Writing to Page 0x{page:02X} (Addresses 0x{page_start:02X}-0x{page_start+7:02X})...")
-            
+
             page_data = []
             for a in range(page_start, page_start + EEPROM_PAGE_SIZE):
                 current_val = self.reader.read_register(a, config.EEPROM_ADDR)
@@ -127,7 +160,6 @@ class CalibrationWriter:
             for addr, new_byte in target_updates.items():
                 if page_start <= addr < (page_start + EEPROM_PAGE_SIZE):
                     page_data[addr - page_start] = new_byte
-
 
             if not self._program_page(page, page_data):
                 print(f" CRITICAL: Failed to write to page 0x{page:02X}")
@@ -144,11 +176,27 @@ class CalibrationWriter:
         serial_num = input("Enter Serial Number (e.g., 000001): ").strip()
 
         file_path = os.path.join(self.DUT_BASE_DIR, part_num, f"{serial_num}.txt")
-        
+
         try:
-            target_updates = self.parse_dut_file(file_path)
+            active_label = self.get_active_label(file_path)
+
+            if active_label:
+                print(f"\nActive variant per [ActiveConfig]: {active_label}")
+                choice = input(f"Updated Calibration Settings and Coefficients? (Y/n, or type a different label): ").strip()
+                if choice == '' or choice.lower() in ('y', 'yes'):
+                    variant_label = active_label
+                elif choice.lower() in ('n', 'no'):
+                    print("Aborted.")
+                    return
+                else:
+                    variant_label = choice
+            else:
+                print("\nNo [ActiveConfig] found — using default (unlabeled) calibration.")
+                variant_label = None
+
+            target_updates = self.parse_dut_file(file_path, variant_label=variant_label)
             if not target_updates:
-                print("No coefficients or parameters in the file")
+                print(f"No coefficients or parameters found for variant '{variant_label}'")
                 return
 
             print(f"\nConnecting to sensor on Channel {COEFFICIENT_CHANNEL}...")
@@ -163,13 +211,14 @@ class CalibrationWriter:
             if self.process_flash_routine(target_updates):
                 print("\nCalculating CRC")
                 calculate_crc(self.reader)
-                print("\nCoefficients and Settings written to EEPROM")
+                print(f"\nCoefficients and Settings for '{variant_label or 'default'}' written to EEPROM")
 
         except Exception as e:
             print(f"\nCRITICAL SCRIPT FAULT: {e}")
         finally:
             self.reader.disconnect_channel()
             self.reader.disconnect()
+
 
 if __name__ == "__main__":
     writer = CalibrationWriter()

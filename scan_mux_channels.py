@@ -6,18 +6,14 @@ from pga305_reader import PGA305Reader
 
 OUTPUT_DIR = "scan_channels_output"
 
+#This will probably be removed 
 class ScanMuxChannels:
-    """
-    Scans all channels repeatedly, reading part number, serial number,
-    TADC and PADC from each PGA305. Saves results to a CSV file in
-    scan_channels_output/ for timing analysis.
-    """
 
     def __init__(self, iterations=10):
-        self.iterations   = iterations
+        self.iterations = iterations
         self.num_channels = config.SCAN_NUM_CHANNELS
-        self.reader       = PGA305Reader()
-        self.results      = []
+        self.reader = PGA305Reader()
+        self.results = []
 
     def run(self):
         print("\n" + "="*70)

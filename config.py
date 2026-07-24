@@ -1,3 +1,5 @@
+## NOTE: Clean this up a lot of the variables here are not needed anymore
+
 SERIAL_PORT = "ASRL5::INSTR"  
 BAUD_RATE = 115200            
 TIMEOUT_MS = 2000             
