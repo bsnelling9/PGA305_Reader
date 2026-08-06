@@ -14,7 +14,7 @@ from read_control_registers import ReadControlRegisters
 from sensor_output import sensor_output
 from reset_eeprom import ResetEEPROM
 from write_calibration import CalibrationWriter
-
+from reset_coefficients import run as reset_coefficients
 
 def print_header():
     print("\n" + "="*70)
@@ -180,6 +180,8 @@ def main():
             CalibrationWriter().clear_calibration()
         elif choice == 'c':
             ResetEEPROM(channel=config.CHANNEL).run()
+        elif choice == 'r':
+             reset_coefficients()
         else:
             print("\nInvalid choice. Please select 0-16.")
 

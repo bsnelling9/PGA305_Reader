@@ -149,6 +149,7 @@ class WriteEEPROM:
                 return
 
             print("\n  Step 3: Verifying...")
+
             all_ok = True
             for i in range(EEPROM_PAGE_SIZE):
                 a = page_start + i

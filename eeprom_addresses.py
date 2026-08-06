@@ -187,7 +187,6 @@ EEPROM_ID_MAP = {
     "PRANGE": [0x76, 0x77],
 }
 
-
 EEPROM_CACHE = {
     0x80: "EEPROM_CACHE_LO1",
     0x81: "EEPROM_CACHE_LO2",
@@ -248,4 +247,13 @@ COEFFICIENTS_MAP = {
     "PADC_GAIN": [0x44, 0x45, 0x46],
     "PADC_OFFSET": [0x47, 0x48, 0x49],
     "OFF_EN": [0x69]
+}
+
+COEFF_RESET_KEYS = [k for k in COEFFICIENTS_MAP if k != "OFF_EN"]
+
+COEFF_RESET_ADDRS = [addr for k in COEFF_RESET_KEYS for addr in COEFFICIENTS_MAP[k]]
+
+COEFF_RESET_OVERRIDES = {
+    0x02: 0x20,  # H0_MSB — TI factory default
+    0x0E: 0x10,  # G0_MSB — TI factory default
 }
