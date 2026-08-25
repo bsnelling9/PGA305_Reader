@@ -15,6 +15,7 @@ from sensor_output import sensor_output
 from reset_eeprom import ResetEEPROM
 from write_calibration import CalibrationWriter
 from reset_coefficients import run as reset_coefficients
+from dac_output_test import dac_output_test
 
 def print_header():
     print("\n" + "="*70)
@@ -41,6 +42,7 @@ def print_menu():
     print("  14. Read AMUX_CTRL")
     print("  15. Sensor output (DMM / Compute DAC)")
     print("  16. Write Calibration Coefficients and Settings")
+    print("  18. DAC output test (manual code -> DMM)")
     print("  c.  Reset EEPROM")
     print("  0.  Exit")
     print("-" * 70)
@@ -143,7 +145,7 @@ def main():
         print_header()
         print_menu()
 
-        choice = input("\nSelect option (0-16): ").strip()
+        choice = input("\nSelect option (0-18): ").strip()
 
         if choice == '0':
             print("\nExiting...")
@@ -178,12 +180,14 @@ def main():
             CalibrationWriter().run()
         elif choice == '17':
             CalibrationWriter().clear_calibration()
+        elif choice == '18':
+            dac_output_test()
         elif choice == 'c':
             ResetEEPROM(channel=config.CHANNEL).run()
         elif choice == 'r':
              reset_coefficients()
         else:
-            print("\nInvalid choice. Please select 0-16.")
+            print("\nInvalid choice. Please select 0-18.")
 
         input("\nPress Enter to continue...")
 

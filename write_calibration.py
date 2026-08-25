@@ -172,7 +172,7 @@ class CalibrationWriter:
         print("Load all coefficients from DUT files")
         print("=" * 70)
 
-        part_num = input("Enter Part Number (e.g., A10619): ").strip()
+        part_num = input("Enter Pressure Code (e.g., A10619): ").strip()
         serial_num = input("Enter Serial Number (e.g., 000001): ").strip()
 
         file_path = os.path.join(self.DUT_BASE_DIR, part_num, f"{serial_num}.txt")
