@@ -1,12 +1,9 @@
 ## NOTE: Clean this up a lot of the variables here are not needed anymore
-
 SERIAL_PORT = "ASRL5::INSTR"  
 BAUD_RATE = 115200            
 TIMEOUT_MS = 2000             
 
 CHANNEL = 1 
-
-REGISTER_MAP_PATH = "reference/PGA305 Control and Status Registers Map.csv"
 
 # T = normalized temperature ADC value
 # P = normalized pressure ADC value
@@ -19,9 +16,12 @@ P_NORM = 4194304
 # - 0x20: Runtime data (ADC values, compensated output)
 # - 0x22: Control and Status registers
 # - 0x25: EEPROM registers (Part Number, Serial Number, PRange)
+# I need to clean this up because they are part of the PGA305
 PGA305_I2C_ADDR = 0x20
 I2C_CONTROL = 0x22 
 EEPROM_ADDR = 0x25  
+COMPENSATION_CNTRL_ADDR = 0x0C
+COMMAND_MODE = 0x03
 
 CM_COMMAND_DELAY = 2.5   
 I2C_RESET_DELAY = 1.0      

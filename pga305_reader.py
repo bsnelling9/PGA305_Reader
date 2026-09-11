@@ -161,7 +161,7 @@ class PGA305Reader:
                 response = b''
 
             if len(response) >= 2 and response[0:2] == b'\x06\x0a':
-                if self.read_register(0x01, config.PGA305_I2C_ADDR) == 0x03:
+                if self.read_register(config.COMPENSATION_CNTRL_ADDR, config.PGA305_I2C_ADDR) == config.COMMAND_MODE:
                     return True
 
             if attempt < max_retries - 1:

@@ -1,3 +1,4 @@
+# Need to clean this file up to match the OWI app
 # This is the entire EEPROM page mapping
 EEPROM_REGISTERS = {
     # PAGE 0-1 — H Coefficients (0x00–0x0B)

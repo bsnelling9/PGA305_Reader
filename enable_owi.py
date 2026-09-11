@@ -2,7 +2,7 @@ import time
 import config
 from pga305_reader import PGA305Reader
 
-
+##This can most likely be removed
 class EnableOWI:
 
     def __init__(self, channel=1):

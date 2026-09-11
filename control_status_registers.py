@@ -1,6 +1,7 @@
 # These are the runtime registers 
 # Gives the PGA305 a command (control), and what is happening (Status)
 # Reset back to default (EEPROM), on power cycle
+# need to remove this somehow,
 REGISTERS = {
     # RAM BIST
     0x02: "RAMBIST_CONTROL",
