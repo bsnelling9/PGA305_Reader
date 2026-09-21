@@ -2,7 +2,6 @@ import sys
 import config
 from scripts.gpio_diagnostic import run_gpio_diagnostic
 from scripts.verify_calibration import run_calibration_verification
-from read_tadc import ReadTADC
 from read_eeprom import ReadEEPROM
 from write_eeprom import WriteEEPROM
 from verify_coefficients import VerifyCoefficients
