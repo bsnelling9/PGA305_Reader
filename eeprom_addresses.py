@@ -218,6 +218,16 @@ EEPROM_STATUS_READ_IN_PROGRESS    = 0x01
 EEPROM_STATUS_ERASE_IN_PROGRESS   = 0x02
 EEPROM_STATUS_PROGRAM_IN_PROGRESS = 0x04
 
+# OP_STAGE_CTRL (EEPROM 0x33)
+OP_STAGE_CTRL_ADDR = 0x33
+
+# DAC gain settings (4_20MA_EN = 0, DACCAP_EN = 1)
+DAC_GAIN_10V  = 0x11
+DAC_GAIN_4V   = 0x12
+DAC_GAIN_667V = 0x16
+
+# Current mode (4_20MA_EN = 1)
+CURRENT_MODE  = 0x08
 
 EEPROM_PAGES = {
     0x00: "PAGE 0-1  — H Coefficients",
@@ -258,3 +268,4 @@ COEFF_RESET_OVERRIDES = {
     0x02: 0x20,  # H0_MSB — TI factory default
     0x0E: 0x10,  # G0_MSB — TI factory default
 }
+

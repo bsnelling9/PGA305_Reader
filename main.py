@@ -1,6 +1,5 @@
 import sys
 import config
-from pga305_reader import PGA305Reader
 from scripts.gpio_diagnostic import run_gpio_diagnostic
 from scripts.verify_calibration import run_calibration_verification
 from read_tadc import ReadTADC
@@ -16,18 +15,18 @@ from reset_eeprom import ResetEEPROM
 from write_calibration import CalibrationWriter
 from reset_coefficients import run as reset_coefficients
 from dac_output_test import dac_output_test
+from set_op_stage_ctrl import run as set_op_stage_ctrl
+
 
 def print_header():
-    print("\n" + "="*70)
-    print(" "*20 + "PGA305 SENSOR READER")
-    print("="*70)
+    print("\n" + "=" * 70)
+    print(" " * 20 + "PGA305 SENSOR READER")
+    print("=" * 70)
 
 
 def print_menu():
     print("\nMAIN MENU:")
     print("-" * 70)
-    print("  1.  Read sensor data (Part Number, Serial Number, PRange)")
-    print("  2.  Scan all channels for programmed sensors")
     print("  3.  Run GPIO diagnostic test (check for damaged STM32 pins)")
     print("  4.  Verify PGA305 calibration")
     print("  5.  Read TADC")
@@ -38,106 +37,15 @@ def print_menu():
     print("  10. Handle UART")
     print("  11. Read Control Registers")
     print("  12. Write EEPROM register")
-    print("  13. Read passive (compensation control + DAC)")
-    print("  14. Read AMUX_CTRL")
     print("  15. Sensor output (DMM / Compute DAC)")
     print("  16. Write Calibration Coefficients and Settings")
+    print("  17. Clear Calibration")
     print("  18. DAC output test (manual code -> DMM)")
+    print("  19. Set OP_STAGE_CTRL (channel range)")
     print("  c.  Reset EEPROM")
+    print("  r.  Reset coefficients")
     print("  0.  Exit")
     print("-" * 70)
-
-
-def read_passive():
-    reader = PGA305Reader()
-
-    try:
-        print(f"\nConnecting to {config.SERIAL_PORT}...")
-        reader.connect()
-
-        print(f"Switching to channel {config.CHANNEL}...")
-        reader.set_channel(config.CHANNEL)
-
-        crc_status = reader.read_register(0x8C, config.I2C_CONTROL)
-        print(f"EEPROM_CRC_STATUS = 0x{crc_status:02X}")
-
-        comp_ctrl = reader.read_register(0x0C, config.PGA305_I2C_ADDR)
-        if comp_ctrl is not None:
-            print(f"\nBEFORE command mode:")
-            print(f"COMPENSATION_CONTROL = 0x{comp_ctrl:02X}")
-            print(f"  IF_SEL      (bit 1): {(comp_ctrl >> 1) & 1}")
-            print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
-        else:
-            print("READ FAILED before command mode")
-
-        dac_reg0_1 = reader.read_register(0x30, config.I2C_CONTROL)
-        dac_reg0_2 = reader.read_register(0x31, config.I2C_CONTROL)
-
-        if dac_reg0_1 is not None and dac_reg0_2 is not None:
-            dac_code = (dac_reg0_2 << 8) | dac_reg0_1
-            print(f"\nDAC_REG0_1 (0x22/0x30) = 0x{dac_reg0_1:02X}")
-            print(f"DAC_REG0_2 (0x22/0x31) = 0x{dac_reg0_2:02X}")
-            print(f"DAC code = 0x{dac_code:04X} ({dac_code})")
-        else:
-            print("READ FAILED")
-
-        print("\nEntering command mode...")
-
-        if not reader.enter_command_mode():
-            print("ERROR: Could not enter command mode")
-            return
-
-        comp_ctrl = reader.read_register(0x0C, config.PGA305_I2C_ADDR)
-
-        if comp_ctrl is not None:
-            print(f"\nAFTER command mode:")
-            print(f"COMPENSATION_CONTROL = 0x{comp_ctrl:02X}")
-            print(f"  IF_SEL      (bit 1): {(comp_ctrl >> 1) & 1}")
-            print(f"  MICRO_RESET (bit 0): {comp_ctrl & 1}")
-        else:
-            print("READ FAILED after command mode")
-
-    except Exception as e:
-        print(f"\nERROR: {e}")
-
-    finally:
-        reader.disconnect_channel()
-        reader.disconnect()
-
-def scan_all_channels():
-    print_header()
-    print("SCANNING ALL CHANNELS")
-    print("=" * 70)
-
-    reader = PGA305Reader()
-
-    try:
-        reader.connect()
-
-        for channel in range(8):
-            print(f"\n--- Channel {channel} ---")
-            data = reader.read_sensor_data(channel, verbose=False)
-
-            if data:
-                print(f"  Part Number:   {data['part_number']}")
-                print(f"  Serial Number: {data['serial_number']}")
-                if data['prange'] is not None:
-                    print(f"  PRange:        {data['prange']}")
-                if data['serial_number'] != 0 or data['part_number'] not in ['A0', 'S0']:
-                    print(f"  PROGRAMMED SENSOR")
-                else:
-                    print(f"  (blank/unprogrammed)")
-            else:
-                print("  No response")
-
-    except Exception as e:
-        print(f"\nERROR: {e}")
-
-    finally:
-        reader.disconnect()
-        print("\n" + "=" * 70)
-        print("SCAN COMPLETE")
-        print("=" * 70)
 
 
 def main():
@@ -145,13 +53,11 @@ def main():
         print_header()
         print_menu()
 
-        choice = input("\nSelect option (0-18): ").strip()
+        choice = input("\nSelect option: ").strip().lower()
 
         if choice == '0':
             print("\nExiting...")
             sys.exit(0)
-        elif choice == '2':
-            scan_all_channels()
         elif choice == '3':
             run_gpio_diagnostic()
         elif choice == '4':
@@ -172,8 +78,6 @@ def main():
             ReadControlRegisters(channel=config.CHANNEL).run()
         elif choice == '12':
             WriteEEPROM(channel=config.CHANNEL).run()
-        elif choice == '13':
-            read_passive()          
         elif choice == '15':
             sensor_output()
         elif choice == '16':
@@ -182,12 +86,14 @@ def main():
             CalibrationWriter().clear_calibration()
         elif choice == '18':
             dac_output_test()
+        elif choice == '19':
+            set_op_stage_ctrl()
         elif choice == 'c':
             ResetEEPROM(channel=config.CHANNEL).run()
         elif choice == 'r':
-             reset_coefficients()
+            reset_coefficients()
         else:
-            print("\nInvalid choice. Please select 0-18.")
+            print("\nInvalid choice.")
 
         input("\nPress Enter to continue...")
 
